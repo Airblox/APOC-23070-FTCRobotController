@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
@@ -66,6 +67,11 @@ public class Project1Hardware {
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
 
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -89,7 +95,7 @@ public class Project1Hardware {
      * Resets values such as slider positions. This is automatically called in
      * {@link #initWithoutReset(HardwareMap)} initWithoutReset()}.
      */
-    public void resetValues() {
+    public final void resetValues() {
         vertLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         vertRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
@@ -124,14 +130,14 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.7);
-        counterroller.setPower(1);
+        intake.setPower(-0.7);
+        counterroller.setPower(-1);
         intakeOn = true;
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.5);
-        counterroller.setPower(-1);
+        intake.setPower(0.5);
+        counterroller.setPower(1);
         intakeOn = true;
     }
 
