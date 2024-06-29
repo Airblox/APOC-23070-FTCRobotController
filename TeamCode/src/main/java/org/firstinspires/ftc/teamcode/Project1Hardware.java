@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -79,6 +80,14 @@ public class Project1Hardware {
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
+        intakeL.setDirection(Servo.Direction.FORWARD);
+        intakeR.setDirection(Servo.Direction.FORWARD);
+        scoringLeft.setDirection(Servo.Direction.FORWARD);
+        scoringRight.setDirection(Servo.Direction.FORWARD);
+        clawLeft.setDirection(Servo.Direction.FORWARD);
+        clawRight.setDirection(Servo.Direction.FORWARD);
+        counterroller.setDirection(DcMotorSimple.Direction.REVERSE);
+
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -137,7 +146,7 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.7);
+        intake.setPower(0.6);
         counterroller.setPower(1);
         intakeOn = true;
     }
@@ -155,33 +164,29 @@ public class Project1Hardware {
     }
 
     public void intakeUp() {
+        intakeL.setPosition(0.2);
+        intakeR.setPosition(0.2);
         intakeUp = true;
-        intakeL.setPosition(1);
-        intakeR.setPosition(1);
     }
 
     public void intakeDown() {
-        intakeUp = false;
         intakeL.setPosition(0);
         intakeR.setPosition(0);
+        intakeUp = false;
     }
 
-    public boolean intakeLeftDetected() {
-        return pixelLeft.getDistance(DistanceUnit.MM) < 3;
-    }
+    public boolean intakeLeftDetected() {return pixelLeft.getDistance(DistanceUnit.MM) < 3;}
 
-    public boolean intakeRightDetected() {
-        return pixelRight.getDistance(DistanceUnit.MM) < 3;
-    }
+    public boolean intakeRightDetected() {return pixelRight.getDistance(DistanceUnit.MM) < 3;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.25);}
-    public void linkageDown() {linkage.setPosition(0);}
+    public void linkageUp() {linkage.setPosition(0.6);}
+    public void linkageDown() {linkage.setPosition(1);}
 
     // TODO: find claw positions
-    public void clawLeftOpen() {clawLeft.setPosition(0.25);}
+    public void clawLeftOpen() {clawLeft.setPosition(0.5);}
     public void clawLeftClose() {clawLeft.setPosition(0);}
-    public void clawRightOpen() {clawRight.setPosition(0.25);}
+    public void clawRightOpen() {clawRight.setPosition(0.5);}
     public void clawRightClose() {clawRight.setPosition(0);}
     /** Opens both claws. */
     public void clawRelease() {clawLeftOpen(); clawRightOpen();}
@@ -366,7 +371,7 @@ public class Project1Hardware {
             double orig = FL;
             double cur = orig;
 
-            while (Math.abs(cur-orig) <= distance) {
+            while (Math.abs(cur - orig) <= distance) {
                 FL = robot.frontLeft.getCurrentPosition();
                 FR = robot.frontRight.getCurrentPosition();
                 BL = robot.backLeft.getCurrentPosition();
