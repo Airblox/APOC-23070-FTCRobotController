@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 
 @TeleOp(name="TeleOp v0 Beta Build")
 public class Beta extends LinearOpMode {
-    private final static String BUILD_VERSION = "0.0.2";  // to avoid version control conflicts
+    private final static String BUILD_VERSION = "0.0.3";  // to avoid version control conflicts
 
     Project1Hardware robot;
     State state;
@@ -127,7 +127,7 @@ public class Beta extends LinearOpMode {
 
             if (gamepad.touchpad) robot.imu.resetYaw();
 
-            robot.drivetrain.remote(directionY, directionX, pivot, heading);
+            robot.drivetrain.remote(directionY, -directionX, -pivot, heading);
             telemetry.addData("BUILD VERSION", "v" + BUILD_VERSION + "\n");
             telemetry.addLine(
                     "MOTOR POWERS\n"

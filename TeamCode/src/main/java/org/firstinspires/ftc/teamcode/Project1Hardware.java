@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -63,6 +64,11 @@ public class Project1Hardware {
         drivetrain = new Drivetrain(this);
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
+        imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP
+        )));
+
         vertLeft.setTargetPosition(vertLeft.getCurrentPosition());
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
@@ -71,6 +77,7 @@ public class Project1Hardware {
         frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -130,14 +137,14 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(-0.7);
-        counterroller.setPower(-1);
+        intake.setPower(0.7);
+        counterroller.setPower(1);
         intakeOn = true;
     }
 
     public void intakeReverse() {
-        intake.setPower(0.5);
-        counterroller.setPower(1);
+        intake.setPower(-0.5);
+        counterroller.setPower(-1);
         intakeOn = true;
     }
 
