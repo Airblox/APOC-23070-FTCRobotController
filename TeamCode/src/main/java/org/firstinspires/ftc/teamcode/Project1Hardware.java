@@ -36,7 +36,7 @@ public class Project1Hardware {
     boolean intakeOn, intakeUp;
     boolean scoredLeft, scoredRight;
     boolean[] pixelIntakeStatus = new boolean[2];
-    static final int[] sliderPositions = {0, 1600, 2300, 3000};
+    static final int[] sliderPositions = {0, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -78,6 +78,8 @@ public class Project1Hardware {
         frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        vertLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        vertRight.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
         intakeL.setDirection(Servo.Direction.FORWARD);
@@ -146,13 +148,13 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.6);
+        intake.setPower(0.5);
         counterroller.setPower(1);
         intakeOn = true;
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.5);
+        intake.setPower(-0.4);
         counterroller.setPower(-1);
         intakeOn = true;
     }
@@ -170,8 +172,8 @@ public class Project1Hardware {
     }
 
     public void intakeDown() {
-        intakeL.setPosition(0);
-        intakeR.setPosition(0);
+        intakeL.setPosition(0.02);
+        intakeR.setPosition(0.02);
         intakeUp = false;
     }
 
@@ -180,12 +182,12 @@ public class Project1Hardware {
     public boolean intakeRightDetected() {return pixelRight.getDistance(DistanceUnit.MM) < 3;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.6);}
+    public void linkageUp() {linkage.setPosition(0.5);}
     public void linkageDown() {linkage.setPosition(1);}
 
     // TODO: find claw positions
-    public void clawLeftOpen() {clawLeft.setPosition(0.5);}
-    public void clawLeftClose() {clawLeft.setPosition(0);}
+    public void clawLeftOpen() {clawLeft.setPosition(0);}
+    public void clawLeftClose() {clawLeft.setPosition(0.8);}
     public void clawRightOpen() {clawRight.setPosition(0.5);}
     public void clawRightClose() {clawRight.setPosition(0);}
     /** Opens both claws. */
@@ -400,14 +402,16 @@ public class Project1Hardware {
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
-        private final static double HALF = 0.125;
-        private final static double TRANSFER_BASE = 0.725;
-        private final static double SCORING_BASE = 0.125;
+        private final static double HALF = 0.22;
+        private final static double TRANSFER_BASE = 0.0;
+        private final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
             this.left = left;
             this.right = right;
+            diffLeft = 0;
+            diffRight = 0;
         }
 
         /** Sets servos' positions. Call after a method. */
@@ -423,16 +427,8 @@ public class Project1Hardware {
          *              change.
          */
         protected void setDifferences(double left, double right) {
-            if (left <= 1) {
-                this.diffLeft = left;
-                this.left.setPosition(base + left);
-            }
-
-            if (right <= 1) {
-                this.diffRight = right;
-                this.right.setPosition(base + right);
-            }
-
+            if (left <= 1) this.diffLeft = left;
+            if (right <= 1) this.diffRight = right;
             apply();
         }
 
@@ -457,16 +453,8 @@ public class Project1Hardware {
          *                  change.
          */
         protected void setValues(double pitch, double diffLeft, double diffRight) {
-            if (diffLeft <= 1) {
-                this.diffLeft = diffLeft;
-                this.left.setPosition(base + diffLeft);
-            }
-
-            if (diffRight <= 1) {
-                this.diffRight = diffRight;
-                this.right.setPosition(base + diffRight);
-            }
-
+            if (diffLeft <= 1) this.diffLeft = diffLeft;
+            if (diffRight <= 1) this.diffRight = diffRight;
             this.base = pitch;
             apply();
         }
@@ -480,16 +468,16 @@ public class Project1Hardware {
         }
 
         /** Sets the orientation of scoring to horizontal.*/
-        public void setHorizontal() {setDifferences(HALF, -HALF);}
+        public void setHorizontal() {setDifferences(0, 0);}
 
         /** Sets the orientation of scoring to vertical. */
-        public void setVertical() {setDifferences(0, 0);}
+        public void setVertical() {setDifferences(HALF, -HALF);}
 
         /** Sets the orientation of scoring to diagonal. */
         public void setDiagonal() {setDifferences(HALF/2, -HALF/2);}
 
         /** Sets the scoring module to ready-for-transfer position. */
-        public void setTransferPosition() {setValues(TRANSFER_BASE, HALF, -HALF);}
+        public void setTransferPosition() {setValues(TRANSFER_BASE, 0, 0);}
 
         /** Sets the scoring module to scoring position. */
         public void setScoringPosition() {setValues(SCORING_BASE, diffLeft, diffRight);}

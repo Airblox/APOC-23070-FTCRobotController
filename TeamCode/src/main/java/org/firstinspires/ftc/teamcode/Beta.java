@@ -3,15 +3,18 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name="TeleOp v0 Beta Build")
 public class Beta extends LinearOpMode {
-    private final static String BUILD_VERSION = "0.0.3";  // to avoid version control conflicts
+    private final static String BUILD_VERSION = "0.0.4";  // to avoid version control conflicts
 
     Project1Hardware robot;
     State state;
     Gamepad gamepad = new Gamepad();
     Gamepad lastGamepad = new Gamepad();
+
+    ElapsedTime timer1 = new ElapsedTime();
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -47,7 +50,10 @@ public class Beta extends LinearOpMode {
 
             if (state == State.AWAIT) {
                 // Intake is on automatically when state switches to AWAIT until driver toggles.
-                if (!intakeDefaultOverridden) robot.intakeOn();
+                if (!intakeDefaultOverridden) {
+                    robot.intakeOn();
+                    robot.intakeUp();
+                }
 
                 // Toggle intake
                 if (gamepad.left_bumper && !lastGamepad.left_bumper) {
@@ -61,30 +67,32 @@ public class Beta extends LinearOpMode {
                 }
 
                 // TODO: get colour-distance sensor values
-                if (robot.intakeLeftDetected()) {
+                if (robot.intakeLeftDetected() || gamepad.left_trigger > 0) {
                     gamepad.rumble(0.75, 0, 1);
                     robot.pixelIntakeStatus[0] = true;
                 }
 
-                if (robot.intakeRightDetected()) {
+                if (robot.intakeRightDetected() || gamepad.right_trigger > 0) {
                     gamepad.rumble(0, 0.75, 1);
                     robot.pixelIntakeStatus[1] = true;
                 }
 
-                if (robot.pixelIntakeStatus[0] && robot.pixelIntakeStatus[1]) {
+                if ((robot.pixelIntakeStatus[0] && robot.pixelIntakeStatus[1]) || gamepad.share) {
+                    timer1.reset();
                     state = State.READY_FOR_SLIDER;
                 }
             }
 
             if (state == State.READY_FOR_SLIDER) {
-                // TODO: find linkage position
                 robot.linkageUp();
-                robot.clawGrip();
+                if (timer1.milliseconds() > 300) robot.clawLeftClose();
 
-                // TODO: raise slider here. Add check for coordinates via Roadrunner when tuned
-                if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
-                if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
-                if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
+                if (timer1.milliseconds() > 500) {
+                    robot.linkageDown();
+                    if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
+                    if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
+                    if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
+                }
             }
 
             if (state == State.TRANSFERRING) {
