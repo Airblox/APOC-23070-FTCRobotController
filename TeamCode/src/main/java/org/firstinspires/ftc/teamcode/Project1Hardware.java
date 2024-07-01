@@ -36,7 +36,7 @@ public class Project1Hardware {
     boolean intakeOn, intakeUp;
     boolean scoredLeft, scoredRight;
     boolean[] pixelIntakeStatus = new boolean[2];
-    static final int[] sliderPositions = {0, 290, 560, 800};
+    static final int[] sliderPositions = {0, 290, 560, 800, 20};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -148,7 +148,7 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.5);
+        intake.setPower(0.7);
         counterroller.setPower(1);
         intakeOn = true;
     }
@@ -172,8 +172,8 @@ public class Project1Hardware {
     }
 
     public void intakeDown() {
-        intakeL.setPosition(0.02);
-        intakeR.setPosition(0.02);
+        intakeL.setPosition(0.01);
+        intakeR.setPosition(0.01);
         intakeUp = false;
     }
 
@@ -182,7 +182,7 @@ public class Project1Hardware {
     public boolean intakeRightDetected() {return pixelRight.getDistance(DistanceUnit.MM) < 3;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.5);}
+    public void linkageUp() {linkage.setPosition(0.4);}
     public void linkageDown() {linkage.setPosition(1);}
 
     // TODO: find claw positions
@@ -403,8 +403,8 @@ public class Project1Hardware {
     public static class ScoringModule {
         ServoImplEx left, right;
         private final static double HALF = 0.22;
-        private final static double TRANSFER_BASE = 0.0;
-        private final static double SCORING_BASE = 0.57;
+        private final static double TRANSFER_BASE = 0.05;
+        private final static double SCORING_BASE = 0.585;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {

@@ -81,17 +81,25 @@ public class Beta extends LinearOpMode {
                     timer1.reset();
                     state = State.READY_FOR_SLIDER;
                 }
+
+                // Maintain power for linkage
+                robot.linkageDown();
             }
 
             if (state == State.READY_FOR_SLIDER) {
-                robot.linkageUp();
-                if (timer1.milliseconds() > 300) robot.clawLeftClose();
+                robot.setSliderPosition(4);
+                if (robot.isSliderInPosition(2)) {
+                    robot.scoring.setTransferPosition();
+                    robot.linkageUp();
 
-                if (timer1.milliseconds() > 500) {
-                    robot.linkageDown();
-                    if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
-                    if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
-                    if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
+                    // change this to timer later
+                    if (gamepad.left_bumper) robot.clawLeftClose();
+
+//                if (timer1.milliseconds() > 500) {
+//                    if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
+//                    if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
+//                    if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
+//                }
                 }
             }
 
