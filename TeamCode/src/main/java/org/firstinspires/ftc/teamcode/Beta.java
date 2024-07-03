@@ -77,7 +77,7 @@ public class Beta extends LinearOpMode {
                     robot.pixelIntakeStatus[1] = true;
                 }
 
-                if ((robot.pixelIntakeStatus[0] && robot.pixelIntakeStatus[1]) || gamepad.share) {
+                if (robot.pixelIntakeStatus[0] && robot.pixelIntakeStatus[1]) {
                     timer1.reset();
                     state = State.READY_FOR_SLIDER;
                 }
@@ -88,18 +88,38 @@ public class Beta extends LinearOpMode {
 
             if (state == State.READY_FOR_SLIDER) {
                 robot.setSliderPosition(4);
+                robot.linkageDown();
                 if (robot.isSliderInPosition(2)) {
+                    state = State.TRANSFER_SLIDER_RAISED;
+                    timer1.reset();
+                }
+            }
+
+            if (state == State.TRANSFER_SLIDER_RAISED) {
+                robot.linkageDown();
+                if (timer1.milliseconds() > 300) {
                     robot.scoring.setTransferPosition();
-                    robot.linkageUp();
+                    state = State.TRANSFER_SCORING_IN_POS;
+                    timer1.reset();
+                }
+            }
 
-                    // change this to timer later
-                    if (gamepad.left_bumper) robot.clawLeftClose();
+            if (state == State.TRANSFER_SCORING_IN_POS) {
+                if (timer1.milliseconds() > 300) robot.linkageUp();
 
-//                if (timer1.milliseconds() > 500) {
-//                    if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
-//                    if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
-//                    if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
-//                }
+                // Change this to timer later
+                if (gamepad.left_bumper) {
+                    robot.clawLeftClose();
+                    state = State.TRANSFER_READY;
+                    timer1.reset();
+                }
+            }
+
+            if (state == State.TRANSFER_READY) {
+                if (timer1.milliseconds() > 300) {
+                    if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFERRING;}
+                    if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFERRING;}
+                    if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFERRING;}
                 }
             }
 
@@ -146,9 +166,9 @@ public class Beta extends LinearOpMode {
             robot.drivetrain.remote(directionY, -directionX, -pivot, heading);
             telemetry.addData("BUILD VERSION", "v" + BUILD_VERSION + "\n");
             telemetry.addLine(
-                    "MOTOR POWERS\n"
-                            + robot.frontLeft.getPower() + " " + robot.frontRight.getPower() + "\n"
-                            + robot.backLeft.getPower() + " " + robot.backRight.getPower() + "\n"
+                    "MOTOR POWERS\n" + robot.frontLeft.getPower() + " | "
+                            + robot.frontRight.getPower() + "\n"
+                            + robot.backLeft.getPower() + " | " + robot.backRight.getPower() + "\n"
             );
             telemetry.addData("STATE", state);
             telemetry.addData("INTAKE - L", robot.intakeLeftDetected());
@@ -166,6 +186,9 @@ public class Beta extends LinearOpMode {
         AWAIT,
         /** Pixels are in place and are ready for transfer action. */
         READY_FOR_SLIDER,
+        TRANSFER_SLIDER_RAISED,
+        TRANSFER_SCORING_IN_POS,
+        TRANSFER_READY,
         /** Slider position selected and rising; scoring module flipping. */
         TRANSFERRING,
         /** Slider is up and scoring module is in ready-to-score position. */

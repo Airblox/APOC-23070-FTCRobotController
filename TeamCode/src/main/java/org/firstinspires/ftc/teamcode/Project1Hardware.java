@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -33,8 +34,10 @@ public class Project1Hardware {
     ScoringModule scoring;
 
     int selectedSliderPos;
-    boolean intakeOn, intakeUp;
+    boolean intakeOn, intakeUp, intakeReversed;
     boolean scoredLeft, scoredRight;
+    boolean linkageUp;
+    boolean clawLeftOpen, clawRightOpen;
     boolean[] pixelIntakeStatus = new boolean[2];
     static final int[] sliderPositions = {0, 290, 560, 800, 20};
 
@@ -151,12 +154,14 @@ public class Project1Hardware {
         intake.setPower(0.7);
         counterroller.setPower(1);
         intakeOn = true;
+        intakeReversed = false;
     }
 
     public void intakeReverse() {
         intake.setPower(-0.4);
         counterroller.setPower(-1);
         intakeOn = true;
+        intakeReversed = true;
     }
 
     public void intakeOff() {
@@ -182,8 +187,8 @@ public class Project1Hardware {
     public boolean intakeRightDetected() {return pixelRight.getDistance(DistanceUnit.MM) < 3;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.4);}
-    public void linkageDown() {linkage.setPosition(1);}
+    public void linkageUp() {linkage.setPosition(0.4); linkageUp = true;}
+    public void linkageDown() {linkage.setPosition(1); linkageUp = false;}
 
     // TODO: find claw positions
     public void clawLeftOpen() {clawLeft.setPosition(0);}
@@ -237,8 +242,42 @@ public class Project1Hardware {
         rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void droneLaunch() {
-        drone.setPosition(1);
+    public void droneLaunch() {drone.setPosition(1);}
+
+    /**
+     * Outputs values to the telemetry. This does not update the telemetry. Call
+     * <code>update()</code> manually at the end of the OpMode loop.
+     * @param telemetry Telemetry object.
+     */
+    public void toTelemetry(Telemetry telemetry) {
+        telemetry.addLine(
+                "MOTOR POWERS\n"
+                        + frontLeft.getPower() + " | " + frontRight.getPower() + "\n"
+                        + backLeft.getPower() + " | " + backRight.getPower() + "\n"
+        );
+
+        StringBuilder intake =  new StringBuilder();
+        if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
+        if (intakeUp) intake.append("UP / "); else intake.append("DOWN / ");
+        if (intakeReversed) intake.append("REVERSED"); else intake.append("FORWARD");
+        telemetry.addData("INTAKE", intake);
+
+        if (linkageUp) telemetry.addData("TRANSFER LINKAGE", "UP");
+        else telemetry.addData("TRANSFER LINKAGE", "DOWN");
+
+        StringBuilder claws = new StringBuilder();
+        if (clawLeftOpen) claws.append("<> | "); else claws.append(">< | ");
+        if (clawRightOpen) claws.append("<>"); else claws.append("><");
+        telemetry.addData("CLAW", claws);
+
+        String scoringS = this.scoring.position + " / " + this.scoring.orientation;
+        String scoringB = "BASE " + this.scoring.base;
+        String scoringD = "DIFF " + this.scoring.diffLeft + " | " + this.scoring.diffRight;
+
+        telemetry.addLine("SCORING");
+        telemetry.addLine(scoringS);
+        telemetry.addLine(scoringB);
+        telemetry.addLine(scoringD);
     }
 
     /** This class represents the robot's drivetrain. */
@@ -402,6 +441,8 @@ public class Project1Hardware {
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
+        Position position;
+        Orientation orientation;
         private final static double HALF = 0.22;
         private final static double TRANSFER_BASE = 0.05;
         private final static double SCORING_BASE = 0.585;
@@ -418,6 +459,15 @@ public class Project1Hardware {
         private void apply() {
             left.setPosition(base + diffLeft);
             right.setPosition(base + diffRight);
+
+            if (base == TRANSFER_BASE) position = Position.TRANSFER;
+            else if (base == SCORING_BASE) position = Position.SCORING;
+            else position = Position.CUSTOM;
+
+            if (diffLeft == 0 && diffRight == 0) orientation = Orientation.HORIZONTAL;
+            else if (diffLeft == HALF && diffRight == -HALF) orientation = Orientation.VERTICAL;
+            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Orientation.DIAGONAL;
+            else orientation = Orientation.CUSTOM;
         }
 
         /**
@@ -481,5 +531,20 @@ public class Project1Hardware {
 
         /** Sets the scoring module to scoring position. */
         public void setScoringPosition() {setValues(SCORING_BASE, diffLeft, diffRight);}
+
+        /** Represents the base pitches of the scoring module. */
+        enum Position {
+            TRANSFER,
+            SCORING,
+            CUSTOM
+        }
+
+        /** Represents the orientation of the scoring module. */
+        enum Orientation {
+            HORIZONTAL,
+            VERTICAL,
+            DIAGONAL,
+            CUSTOM
+        }
     }
 }
