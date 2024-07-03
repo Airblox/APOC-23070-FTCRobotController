@@ -89,7 +89,7 @@ public class Project1Hardware {
         intakeR.setDirection(Servo.Direction.FORWARD);
         scoringLeft.setDirection(Servo.Direction.FORWARD);
         scoringRight.setDirection(Servo.Direction.FORWARD);
-        clawLeft.setDirection(Servo.Direction.FORWARD);
+        clawLeft.setDirection(Servo.Direction.REVERSE);
         clawRight.setDirection(Servo.Direction.FORWARD);
         counterroller.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -177,8 +177,8 @@ public class Project1Hardware {
     }
 
     public void intakeDown() {
-        intakeL.setPosition(0.01);
-        intakeR.setPosition(0.01);
+        intakeL.setPosition(0);
+        intakeR.setPosition(0);
         intakeUp = false;
     }
 
