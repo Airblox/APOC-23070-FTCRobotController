@@ -38,8 +38,9 @@ public class Project1Hardware {
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean clawLeftOpen, clawRightOpen;
+    boolean scoringInPos = false;
     boolean[] pixelIntakeStatus = new boolean[2];
-    static final int[] sliderPositions = {0, 290, 560, 800, 20};
+    static final int[] sliderPositions = {0, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -89,9 +90,9 @@ public class Project1Hardware {
         intakeR.setDirection(Servo.Direction.FORWARD);
         scoringLeft.setDirection(Servo.Direction.FORWARD);
         scoringRight.setDirection(Servo.Direction.FORWARD);
-        clawLeft.setDirection(Servo.Direction.REVERSE);
-        clawRight.setDirection(Servo.Direction.FORWARD);
-        counterroller.setDirection(DcMotorSimple.Direction.REVERSE);
+        clawLeft.setDirection(Servo.Direction.FORWARD);
+        clawRight.setDirection(Servo.Direction.REVERSE);
+        counterroller.setDirection(DcMotorSimple.Direction.FORWARD);
 
         frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -151,7 +152,7 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.7);
+        intake.setPower(0.6);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
@@ -171,30 +172,33 @@ public class Project1Hardware {
     }
 
     public void intakeUp() {
-        intakeL.setPosition(0.2);
-        intakeR.setPosition(0.2);
+        intakeL.setPosition(0.25);
+        intakeR.setPosition(0.24);
         intakeUp = true;
     }
 
     public void intakeDown() {
-        intakeL.setPosition(0);
-        intakeR.setPosition(0);
+        intakeL.setPosition(0.01);
+        intakeR.setPosition(0.00);
         intakeUp = false;
     }
 
-    public boolean intakeLeftDetected() {return pixelLeft.getDistance(DistanceUnit.MM) < 3;}
+    public boolean intakeVoltageCheck() {
+        return false;
+    }
 
-    public boolean intakeRightDetected() {return pixelRight.getDistance(DistanceUnit.MM) < 3;}
+    public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
+    public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.4;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.4); linkageUp = true;}
-    public void linkageDown() {linkage.setPosition(1); linkageUp = false;}
+    public void linkageUp() {linkage.setPosition(0.425); linkageUp = true;}
+    public void linkageDown() {linkage.setPosition(0.9); linkageUp = false;}
 
     // TODO: find claw positions
     public void clawLeftOpen() {clawLeft.setPosition(0);}
-    public void clawLeftClose() {clawLeft.setPosition(0.8);}
-    public void clawRightOpen() {clawRight.setPosition(0.5);}
-    public void clawRightClose() {clawRight.setPosition(0);}
+    public void clawLeftClose() {clawLeft.setPosition(0.7);}
+    public void clawRightOpen() {clawRight.setPosition(0);}
+    public void clawRightClose() {clawRight.setPosition(0.65);}
     /** Opens both claws. */
     public void clawRelease() {clawLeftOpen(); clawRightOpen();}
     /** Closes both claws. */
@@ -211,8 +215,8 @@ public class Project1Hardware {
 
         vertLeft.setTargetPosition(sliderPositions[pos]);
         vertRight.setTargetPosition(sliderPositions[pos]);
-        vertLeft.setPower(0.7);
-        vertRight.setPower(0.7);
+        vertLeft.setPower(1);
+        vertRight.setPower(1);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
@@ -266,12 +270,15 @@ public class Project1Hardware {
         else telemetry.addData("TRANSFER LINKAGE", "DOWN");
 
         StringBuilder claws = new StringBuilder();
-        if (clawLeftOpen) claws.append("<> | "); else claws.append(">< | ");
+        if (clawLeftOpen) claws.append("<>  |  "); else claws.append("><  |  ");
         if (clawRightOpen) claws.append("<>"); else claws.append("><");
         telemetry.addData("CLAW", claws);
 
+        String sliders = vertLeft.getCurrentPosition() + "  |  " + vertRight.getCurrentPosition();
+        telemetry.addData("SLIDERS", sliders);
+
         String scoringS = this.scoring.position + " / " + this.scoring.orientation;
-        String scoringB = "BASE " + this.scoring.base;
+        String scoringB = "BASE " + this.scoring.getPitch();
         String scoringD = "DIFF " + this.scoring.diffLeft + " | " + this.scoring.diffRight;
 
         telemetry.addLine("SCORING");
@@ -443,9 +450,9 @@ public class Project1Hardware {
         ServoImplEx left, right;
         Position position;
         Orientation orientation;
-        private final static double HALF = 0.22;
-        private final static double TRANSFER_BASE = 0.05;
-        private final static double SCORING_BASE = 0.585;
+        public final static double HALF = 0.22;
+        public final static double TRANSFER_BASE = 0.025;
+        public final static double SCORING_BASE = 0.58;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
@@ -481,6 +488,13 @@ public class Project1Hardware {
             if (right <= 1) this.diffRight = right;
             apply();
         }
+
+        /**
+         * Gets the current base pitch. Note that this does not reflect the orientation of the
+         * module or the actual position values of the servos.
+         * @return Pitch of the scoring module.
+         */
+        public double getPitch() {return this.base;}
 
         /**
          * Sets the pitch of the scoring set. This does not interfere with the orientation (roll)
