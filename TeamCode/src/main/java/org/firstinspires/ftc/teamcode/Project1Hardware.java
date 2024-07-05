@@ -21,10 +21,10 @@ public class Project1Hardware {
     DcMotorEx intake;
     DcMotorEx rigging;
     ServoImplEx intakeL, intakeR;
-    ServoImplEx linkage;
+    ServoImplEx linkage, lid;
     ServoImplEx scoringLeft, scoringRight;
     ServoImplEx clawLeft, clawRight;
-    ServoImplEx drone;
+    ServoImplEx drone, riggingRelease;
     CRServoImplEx counterroller;
     ColorRangeSensor pixelLeft, pixelRight;
     IMU imu;
@@ -33,7 +33,7 @@ public class Project1Hardware {
     ScoringModule scoring;
 
     int selectedSliderPos;
-    boolean intakeOn, intakeUp, intakeReversed;
+    boolean intakeOn, intakeUp, intakeReversed, lidUp;
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean clawLeftOpen, clawRightOpen;
@@ -56,11 +56,13 @@ public class Project1Hardware {
         intakeL = hardwareMap.get(ServoImplEx.class, "intakeL");
         intakeR = hardwareMap.get(ServoImplEx.class, "intakeR");
         linkage = hardwareMap.get(ServoImplEx.class, "linkage");
+        lid = hardwareMap.get(ServoImplEx.class, "lid");
         scoringLeft = hardwareMap.get(ServoImplEx.class, "scoringL");
         scoringRight = hardwareMap.get(ServoImplEx.class, "scoringR");
         clawLeft = hardwareMap.get(ServoImplEx.class, "clawL");
         clawRight = hardwareMap.get(ServoImplEx.class, "clawR");
         drone = hardwareMap.get(ServoImplEx.class, "drone");
+        riggingRelease = hardwareMap.get(ServoImplEx.class, "riggingRelease");
         counterroller = hardwareMap.get(CRServoImplEx.class, "counterroller");
 
         pixelLeft = hardwareMap.get(ColorRangeSensor.class, "pixelL");
@@ -153,14 +155,14 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.6);
+        intake.setPower(0.8);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.4);
+        intake.setPower(-0.6);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -191,15 +193,24 @@ public class Project1Hardware {
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
+    public void lidUp() {lid.setPosition(0.5); lidUp = true;}
+    public void lidDown() {lid.setPosition(1); lidUp = false;}
+
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.425); linkageUp = true;}
+    public void linkageUp() {linkage.setPosition(0.38); linkageUp = true;}
     public void linkageDown() {linkage.setPosition(0.9); linkageUp = false;}
 
+    public void linkageSlightUp() {
+        linkage.setPosition(0.8);
+        lid.setPosition(0.9);
+        linkageUp = false;
+    }
+
     // TODO: find claw positions
-    public void clawLeftOpen() {clawLeft.setPosition(0);}
-    public void clawLeftClose() {clawLeft.setPosition(0.7);}
-    public void clawRightOpen() {clawRight.setPosition(0);}
-    public void clawRightClose() {clawRight.setPosition(0.65);}
+    public void clawLeftOpen() {clawLeft.setPosition(0.15);}
+    public void clawLeftClose() {clawLeft.setPosition(0.685);}
+    public void clawRightOpen() {clawRight.setPosition(0.15);}
+    public void clawRightClose() {clawRight.setPosition(0.71);}
     /** Opens both claws. */
     public void clawRelease() {clawLeftOpen(); clawRightOpen();}
     /** Closes both claws. */
@@ -208,15 +219,32 @@ public class Project1Hardware {
     // TODO: get slider positions and desired speed
 
     /**
-     * Sets the slider position to a preset value according to the backdrop's set line height.
+     * Sets the slider position to a preset value according to the backdrop's set line height. Use
+     * {@link #setSliderPositionCustom(int) setSliderPositionCustom()} for custom positions.
      * @param pos Set line height (1, 2, 3). Pass in 0 to fully lower the slider.
      * @param power Power of the motors.
      */
     public void setSliderPosition(int pos, double power) {
-        selectedSliderPos = pos;
+        setSliderPositionCustom(sliderPositions[pos], power);
+    }
 
-        vertLeft.setTargetPosition(sliderPositions[pos]);
-        vertRight.setTargetPosition(sliderPositions[pos]);
+    /**
+     * Sets the slider position to a preset value according to the backdrop's set line height,
+     * with a default power of <code>1.0</code>. Use
+     * {@link #setSliderPositionCustom(int) setSliderPositionCustom()} for custom positions.
+     * @param pos Set line height (1, 2, 3). Pass in 0 to fully lower the slider.
+     */
+    public void setSliderPosition(int pos) {setSliderPosition(pos, 1);}
+
+    /**
+     * Sets the slider position to a custom value. Use
+     * {@link #setSliderPosition(int, double) setSliderPosition()} for preset values.
+     * @param pos Custom encoder position value.
+     * @param power Speed of slider.
+     */
+    public void setSliderPositionCustom(int pos, double power) {
+        vertLeft.setTargetPosition(pos);
+        vertRight.setTargetPosition(pos);
         vertLeft.setPower(power);
         vertRight.setPower(power);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -224,10 +252,11 @@ public class Project1Hardware {
     }
 
     /**
-     * Sets the slider position to a preset value according to the backdrop's set line height.
-     * @param pos Set line height (1, 2, 3). Pass in 0 to fully lower the slider.
+     * Sets the slider position to a custom value with a default power of <code>1.0</code>.
+     * Use {@link #setSliderPosition(int, double) setSliderPosition()} for preset values.
+     * @param pos Custom encoder value.
      */
-    public void setSliderPosition(int pos) {setSliderPosition(pos, 1);}
+    public void setSliderPositionCustom(int pos) {setSliderPositionCustom(pos, 1);}
 
     /**
      * Checks if the sliders are in the selected preset height.
@@ -258,7 +287,9 @@ public class Project1Hardware {
     public void droneReset() {drone.setPosition(0); droneLaunched = false;}
     public void droneLaunch() {drone.setPosition(0.8); droneLaunched = true;}
 
-    public void rig() {rigging.setPower(1);}
+    public void rig() {rigging.setPower(1); rigging.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);}
+    public void rigReleaseReset() {riggingRelease.setPosition(0.25);}
+    public void rigRelease() {riggingRelease.setPosition(0.5);}
     public void rigReverse() {rigging.setPower(-1);}
     public void rigStop() {rigging.setPower(0);}
 
@@ -465,8 +496,8 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.04;
-        public final static double SCORING_BASE = 0.58;
+        public final static double TRANSFER_BASE = 0.018;
+        public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {

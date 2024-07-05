@@ -53,9 +53,10 @@ public class Beta extends LinearOpMode {
             if (state == State.INITIALISED) {
                 robot.linkageDown();
                 robot.intakeUp();
+                robot.intakeOff();
                 robot.clawRelease();
                 robot.scoring.setTransferPosition();
-                if (gamepad.left_bumper) state = State.AWAIT;
+                state = State.AWAIT;
             }
 
             if (state == State.AWAIT) {
@@ -92,22 +93,45 @@ public class Beta extends LinearOpMode {
                 // Maintain power for linkage, lift slider for pixels
                 robot.clawRelease();
                 robot.setSliderPosition(0);
+                robot.lidDown();
                 robot.linkageDown();
             }
 
             if (state == State.TRANSFER_CLAW) {
-                if (timer1.milliseconds() > 1800) {
-                    timer1.reset();
-                    state = State.TRANSFER_AWAIT_SLIDER;
+                if (timer1.milliseconds() > 3600) {
+                    if (gamepad.right_bumper && !lastGamepad.right_bumper) {
+                        timer1.reset();
+                        state = State.TRANSFER_AWAIT_SLIDER;
+                    }
                 }
-                else if (timer1.milliseconds() > 1750) robot.linkageDown();
-                else if (timer1.milliseconds() > 1200) robot.clawGrip();
-                else if (timer1.milliseconds() > 1000) robot.scoring.setTransferPosition();
-                else if (timer1.milliseconds() > 300) robot.linkageUp();
-                else if (timer1.milliseconds() > 100) robot.scoring.setPitch(0.0475);
+                else if (timer1.milliseconds() > 3300) robot.linkageDown();
+                else if (timer1.milliseconds() > 3000) robot.clawGrip();
+                else if (timer1.milliseconds() > 1800) robot.linkageUp();
+                else if (timer1.milliseconds() > 1700) robot.setSliderPosition(0);
+                else if (timer1.milliseconds() > 1300) robot.lidUp();
+                else if (timer1.milliseconds() > 1000) robot.setSliderPositionCustom(175);
+                else if (timer1.milliseconds() > 800) robot.intakeOff();
+                else if (timer1.milliseconds() > 500) robot.intakeOn();
+                else if (timer1.milliseconds() > 300) robot.linkageSlightUp();
 
-                robot.intakeOff();
-                robot.setSliderPosition(0);
+                if (!gamepad.left_bumper && lastGamepad.left_bumper) {
+                    timer2.reset();
+                    isReversing = true;
+                    robot.linkageUp();
+                }
+
+                if (isReversing) {
+                    if (timer2.milliseconds() > 1950) {
+                        robot.clawRelease();
+                        state = State.AWAIT;
+                        isReversing = false;
+                    }
+                    else if (timer2.milliseconds() > 1700) robot.scoring.setTransferPosition();
+                    else if (timer2.milliseconds() > 1300) robot.setSliderPosition(0);
+                    else if (timer2.milliseconds() > 950) robot.lidDown();
+                    else if (timer2.milliseconds() > 700) robot.linkageDown();
+                    else if (timer2.milliseconds() > 300) robot.setSliderPositionCustom(175);
+                }
             }
 
             if (state == State.TRANSFER_AWAIT_SLIDER) {
@@ -123,7 +147,7 @@ public class Beta extends LinearOpMode {
                     }
 
                     if (isReversing) {
-                        if (timer2.milliseconds() > 800) {state = State.AWAIT; isReversing = false;}
+                        if (timer2.milliseconds() > 800) {timer2.reset(); state = State.AWAIT;}
                         else if (timer2.milliseconds() > 600) robot.linkageDown();
                         else if (timer2.milliseconds() > 300) robot.clawRelease();
                     }
@@ -167,24 +191,31 @@ public class Beta extends LinearOpMode {
                 else if (gamepad.left_trigger > 0) robot.scoring.setVertical();
                 else if (gamepad.right_trigger > 0) robot.scoring.setHorizontal();
 
-                // Readjust slider positions (go back 1 state).
-                if (gamepad.square) {robot.setSliderPosition(1); state = State.TRANSFER_AWAIT_SLIDER;}
-                if (gamepad.circle) {robot.setSliderPosition(2); state = State.TRANSFER_AWAIT_SLIDER;}
-                if (gamepad.triangle) {robot.setSliderPosition(3); state = State.TRANSFER_AWAIT_SLIDER;}
-
                 if (robot.scoredLeft && robot.scoredRight) {
+                    timer1.reset();
+                    state = State.RETURNING;
+                }
+
+                robot.setSliderPosition(selectedSliderPos);
+                robot.scoring.setScoringPosition();
+            }
+
+            if (state == State.RETURNING) {
+                if (timer1.milliseconds() > 1750) {
                     timer1.reset();
                     state = State.TRANSITION_CLAW_2;
                 }
-
-                robot.scoring.setScoringPosition();
+                else if (timer1.milliseconds() > 1600) robot.scoring.setHorizontal();
+                else if (timer1.milliseconds() > 1300) robot.lidDown();
+                else if (timer1.milliseconds() > 1000) robot.linkageDown();
+                else if (timer1.milliseconds() > 300) robot.setSliderPosition(0, 0.2);
             }
 
             if (state == State.TRANSITION_CLAW_2) {
                 if (timer1.milliseconds() > 1850) {
                     robot.scoring.setTransferPosition();
                     timer1.reset();
-                    state = State.RETURNING;
+                    state = State.RESET;
                 }
                 else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.05);
                 else if (timer1.milliseconds() > 1500) robot.scoring.setPitch(0.15);
@@ -199,28 +230,23 @@ public class Beta extends LinearOpMode {
                 if (timer1.milliseconds() > 300) robot.scoring.setHorizontal();
             }
 
-            if (state == State.RETURNING) {
-                if (timer1.milliseconds() > 300) {
-                    robot.setSliderPosition(0, 0.5);
-                    robot.linkageDown();
-                    robot.scoring.setTransferPosition();
-                    robot.scoring.setHorizontal();
+            if (state == State.RESET) {
+                // Reset variables
+                robot.scoredLeft = false;
+                robot.scoredRight = false;
+                robot.pixelIntakeStatus = new boolean[] {false, false};
 
-                    // Reset variables
-                    robot.scoredLeft = false;
-                    robot.scoredRight = false;
-                    robot.pixelIntakeStatus = new boolean[] {false, false};
-
-                    robot.intakeUp();
-                    state = State.AWAIT;
-                }
+                robot.intakeUp();
+                state = State.AWAIT;
             }
 
             if (gamepad.touchpad) robot.imu.resetYaw();
             if (gamepad.dpad_up)
-                selectedSliderPos = Range.clip(1, 3, selectedSliderPos + 1);
+                selectedSliderPos = Range.clip(selectedSliderPos + 1, 1, 3);
             if (gamepad.dpad_down)
-                selectedSliderPos = Range.clip(1, 3, selectedSliderPos - 1);
+                selectedSliderPos = Range.clip(selectedSliderPos - 1, 1, 3);
+
+            if (gamepad.options) robot.rigRelease(); else robot.rigReleaseReset();
 
             if (gamepad.dpad_left) robot.rig();
             else if (gamepad.share) robot.rigReverse();
@@ -248,18 +274,16 @@ public class Beta extends LinearOpMode {
     }
 
     enum State {
-        /** Right after the OpMode has started. */
         INITIALISED,
-        /** Robot is waiting for pixel intake. */
         AWAIT,
-        /** Pixels are in place and are ready for transfer action. */
         TRANSFER_CLAW,
         TRANSFER_AWAIT_SLIDER,
         TRANSFER_RAISING_SLIDER,
         SLIDER_UP,
         TRANSITION_CLAW_1,
         SCORING_READY,
+        RETURNING,
         TRANSITION_CLAW_2,
-        RETURNING
+        RESET
     }
 }
