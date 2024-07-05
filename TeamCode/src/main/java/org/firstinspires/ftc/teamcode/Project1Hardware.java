@@ -14,7 +14,6 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Project1Hardware {
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
@@ -38,8 +37,10 @@ public class Project1Hardware {
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean clawLeftOpen, clawRightOpen;
-    boolean scoringInPos = false;
+    boolean droneLaunched;
     boolean[] pixelIntakeStatus = new boolean[2];
+    static final double INTAKE_OFFSET_L = 0.0;
+    static final double INTAKE_OFFSET_R = -0.03;
     static final int[] sliderPositions = {0, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
@@ -172,14 +173,14 @@ public class Project1Hardware {
     }
 
     public void intakeUp() {
-        intakeL.setPosition(0.25);
-        intakeR.setPosition(0.24);
+        intakeL.setPosition(0.24 + INTAKE_OFFSET_L);
+        intakeR.setPosition(0.24 + INTAKE_OFFSET_R);
         intakeUp = true;
     }
 
     public void intakeDown() {
-        intakeL.setPosition(0.01);
-        intakeR.setPosition(0.00);
+        intakeL.setPosition(0.05 + INTAKE_OFFSET_L);
+        intakeR.setPosition(0.05 + INTAKE_OFFSET_R);
         intakeUp = false;
     }
 
@@ -188,7 +189,7 @@ public class Project1Hardware {
     }
 
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
-    public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.4;}
+    public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
     // TODO: find linkage positions
     public void linkageUp() {linkage.setPosition(0.425); linkageUp = true;}
@@ -209,17 +210,24 @@ public class Project1Hardware {
     /**
      * Sets the slider position to a preset value according to the backdrop's set line height.
      * @param pos Set line height (1, 2, 3). Pass in 0 to fully lower the slider.
+     * @param power Power of the motors.
      */
-    public void setSliderPosition(int pos) {
+    public void setSliderPosition(int pos, double power) {
         selectedSliderPos = pos;
 
         vertLeft.setTargetPosition(sliderPositions[pos]);
         vertRight.setTargetPosition(sliderPositions[pos]);
-        vertLeft.setPower(1);
-        vertRight.setPower(1);
+        vertLeft.setPower(power);
+        vertRight.setPower(power);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
+
+    /**
+     * Sets the slider position to a preset value according to the backdrop's set line height.
+     * @param pos Set line height (1, 2, 3). Pass in 0 to fully lower the slider.
+     */
+    public void setSliderPosition(int pos) {setSliderPosition(pos, 1);}
 
     /**
      * Checks if the sliders are in the selected preset height.
@@ -246,7 +254,13 @@ public class Project1Hardware {
         rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    public void droneLaunch() {drone.setPosition(1);}
+    /** Resets drone launcher back to position 0 in case of emergency. */
+    public void droneReset() {drone.setPosition(0); droneLaunched = false;}
+    public void droneLaunch() {drone.setPosition(0.8); droneLaunched = true;}
+
+    public void rig() {rigging.setPower(1);}
+    public void rigReverse() {rigging.setPower(-1);}
+    public void rigStop() {rigging.setPower(0);}
 
     /**
      * Outputs values to the telemetry. This does not update the telemetry. Call
@@ -451,7 +465,7 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.025;
+        public final static double TRANSFER_BASE = 0.04;
         public final static double SCORING_BASE = 0.58;
         private double base, diffLeft, diffRight;
 
