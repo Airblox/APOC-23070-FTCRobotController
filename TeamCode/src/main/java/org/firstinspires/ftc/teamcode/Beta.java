@@ -18,7 +18,7 @@ public class Beta extends LinearOpMode {
     ElapsedTime timer1 = new ElapsedTime();
     ElapsedTime timer2 = new ElapsedTime();
 
-    int selectedSliderPos = 1;
+    int selectedSliderPos = 0;
     boolean isReversing = false;
 
     @Override
@@ -152,8 +152,8 @@ public class Beta extends LinearOpMode {
             }
 
             if (state == State.TRANSFER_RAISING_SLIDER) {
-                if (selectedSliderPos == 1) robot.setSliderPositionCustom(175);
-                else robot.setSliderPosition(selectedSliderPos);
+                if (selectedSliderPos <= 175) robot.setSliderPositionCustom(175);
+                else robot.setSliderPositionCustom(selectedSliderPos);
 
                 if (robot.isSliderInPosition()) {
                     timer1.reset();
@@ -165,8 +165,8 @@ public class Beta extends LinearOpMode {
                 if (timer1.milliseconds() > 1900) {
                     robot.scoring.setScoringPosition();
 
-                    if (selectedSliderPos == 1) {
-                        robot.setSliderPosition(selectedSliderPos);
+                    if (selectedSliderPos <= 175) {
+                        robot.setSliderPositionCustom(selectedSliderPos);
                         if (robot.isSliderInPosition()) state = State.SCORING_READY;
                     } else {
                         timer1.reset();
@@ -199,7 +199,7 @@ public class Beta extends LinearOpMode {
                     state = State.RETURNING;
                 }
 
-                robot.setSliderPosition(selectedSliderPos);
+                robot.setSliderPositionCustom(selectedSliderPos);
                 robot.scoring.setScoringPosition();
             }
 
@@ -245,9 +245,17 @@ public class Beta extends LinearOpMode {
 
             if (gamepad.touchpad) robot.imu.resetYaw();
             if (gamepad.dpad_up)
-                selectedSliderPos = Range.clip(selectedSliderPos + 1, 1, 3);
+                selectedSliderPos = Range.clip(
+                        selectedSliderPos + 3,
+                        0,
+                        Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
+                );
             if (gamepad.dpad_down)
-                selectedSliderPos = Range.clip(selectedSliderPos - 1, 1, 3);
+                selectedSliderPos = Range.clip(
+                        selectedSliderPos - 3,
+                        0, 
+                        Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
+                );
 
             if (gamepad.options) robot.rigRelease(); else robot.rigReleaseReset();
 
@@ -267,6 +275,7 @@ public class Beta extends LinearOpMode {
                             + robot.backLeft.getPower() + " | " + robot.backRight.getPower() + "\n"
             );
             telemetry.addData("STATE", state);
+            telemetry.addData("TARGET-SLIDER", selectedSliderPos);
 //            telemetry.addData("INTAKE - L", robot.intakeLeftDetected());
 //            telemetry.addData("INTAKE - R", robot.intakeRightDetected());
 //            telemetry.addData("SCORED - L", robot.scoredLeft);

@@ -41,7 +41,7 @@ public class Project1Hardware {
     boolean[] pixelIntakeStatus = new boolean[2];
     static final double INTAKE_OFFSET_L = 0.0;
     static final double INTAKE_OFFSET_R = -0.03;
-    static final int[] sliderPositions = {0, 0, 290, 560, 800};
+    static final int[] SLIDER_POS = {0, 0, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -225,7 +225,7 @@ public class Project1Hardware {
      * @param power Power of the motors.
      */
     public void setSliderPosition(int pos, double power) {
-        setSliderPositionCustom(sliderPositions[pos], power);
+        setSliderPositionCustom(SLIDER_POS[pos], power);
     }
 
     /**
