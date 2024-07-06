@@ -70,9 +70,8 @@ public class Beta extends LinearOpMode {
                     if (robot.intakeUp) robot.intakeDown(); else robot.intakeUp();
                 }
 
-                if (gamepad.circle && !lastGamepad.circle) {
-                    if (robot.intakeReversed) robot.intakeOn(); else robot.intakeReverse();
-                }
+                if (gamepad.circle) robot.intakeReverse();
+                else if (lastGamepad.circle && !gamepad.circle) robot.intakeOn();
 
                 // TODO: get colour-distance sensor values
                 if (robot.intakeLeftDetected() || gamepad.left_trigger > 0.7) {
@@ -165,12 +164,14 @@ public class Beta extends LinearOpMode {
             if (state == State.TRANSITION_CLAW_1) {
                 if (timer1.milliseconds() > 1900) {
                     robot.scoring.setScoringPosition();
-                    timer1.reset();
 
                     if (selectedSliderPos == 1) {
                         robot.setSliderPosition(selectedSliderPos);
                         if (robot.isSliderInPosition()) state = State.SCORING_READY;
-                    } else state = State.SCORING_READY;
+                    } else {
+                        timer1.reset();
+                        state = State.SCORING_READY;
+                    }
                 }
                 else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.55);
                 else if (timer1.milliseconds() > 1500) robot.scoring.setPitch(0.5);
