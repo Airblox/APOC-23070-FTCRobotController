@@ -41,7 +41,7 @@ public class Project1Hardware {
     boolean[] pixelIntakeStatus = new boolean[2];
     static final double INTAKE_OFFSET_L = 0.0;
     static final double INTAKE_OFFSET_R = -0.03;
-    static final int[] sliderPositions = {0, 290, 560, 800};
+    static final int[] sliderPositions = {0, 0, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -155,14 +155,14 @@ public class Project1Hardware {
 
     // TODO: get intake values
     public void intakeOn() {
-        intake.setPower(0.8);
+        intake.setPower(0.65);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.6);
+        intake.setPower(-0.45);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -197,7 +197,7 @@ public class Project1Hardware {
     public void lidDown() {lid.setPosition(1); lidUp = false;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.38); linkageUp = true;}
+    public void linkageUp() {linkage.setPosition(0.3); linkageUp = true;}
     public void linkageDown() {linkage.setPosition(0.9); linkageUp = false;}
 
     public void linkageSlightUp() {
@@ -208,7 +208,7 @@ public class Project1Hardware {
 
     // TODO: find claw positions
     public void clawLeftOpen() {clawLeft.setPosition(0.15);}
-    public void clawLeftClose() {clawLeft.setPosition(0.685);}
+    public void clawLeftClose() {clawLeft.setPosition(0.75);}
     public void clawRightOpen() {clawRight.setPosition(0.15);}
     public void clawRightClose() {clawRight.setPosition(0.71);}
     /** Opens both claws. */
@@ -264,7 +264,7 @@ public class Project1Hardware {
      * @return The result (<code>true</code> or <code>false</code>).
      */
     public boolean isSliderInPosition(int tolerance) {
-        return Math.abs(vertLeft.getCurrentPosition() - sliderPositions[selectedSliderPos])
+        return Math.abs(vertLeft.getCurrentPosition() - vertLeft.getTargetPosition())
                 <= tolerance;
     }
 
@@ -496,7 +496,7 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.018;
+        public final static double TRANSFER_BASE = 0.005;
         public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 

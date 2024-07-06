@@ -6,9 +6,9 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name="TeleOp v0 Beta Build")
+@TeleOp(name="TeleOp v1 Beta Build")
 public class Beta extends LinearOpMode {
-    private final static String BUILD_VERSION = "1.0.0";  // to avoid version control conflicts
+    private final static String BUILD_VERSION = "1.1.0";  // to avoid version control conflicts
 
     Project1Hardware robot;
     State state;
@@ -136,10 +136,8 @@ public class Beta extends LinearOpMode {
 
             if (state == State.TRANSFER_AWAIT_SLIDER) {
                 if (timer1.milliseconds() > 300) {
-                    if (gamepad.right_bumper) {
-                        robot.setSliderPosition(selectedSliderPos);
-                        state = State.TRANSFER_RAISING_SLIDER;
-                    }
+                    if (gamepad.right_bumper) state = State.TRANSFER_RAISING_SLIDER;
+
                     if (!gamepad.left_bumper && lastGamepad.left_bumper) {
                         timer2.reset();
                         isReversing = true;
@@ -155,20 +153,24 @@ public class Beta extends LinearOpMode {
             }
 
             if (state == State.TRANSFER_RAISING_SLIDER) {
-                robot.setSliderPosition(selectedSliderPos);
-                if (robot.isSliderInPosition()) {state = State.SLIDER_UP;}
-            }
+                if (selectedSliderPos == 1) robot.setSliderPositionCustom(175);
+                else robot.setSliderPosition(selectedSliderPos);
 
-            if (state == State.SLIDER_UP) {
-                timer1.reset();
-                state = State.TRANSITION_CLAW_1;
+                if (robot.isSliderInPosition()) {
+                    timer1.reset();
+                    state = State.TRANSITION_CLAW_1;
+                }
             }
 
             if (state == State.TRANSITION_CLAW_1) {
                 if (timer1.milliseconds() > 1900) {
                     robot.scoring.setScoringPosition();
                     timer1.reset();
-                    state = State.SCORING_READY;
+
+                    if (selectedSliderPos == 1) {
+                        robot.setSliderPosition(selectedSliderPos);
+                        if (robot.isSliderInPosition()) state = State.SCORING_READY;
+                    } else state = State.SCORING_READY;
                 }
                 else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.55);
                 else if (timer1.milliseconds() > 1500) robot.scoring.setPitch(0.5);
