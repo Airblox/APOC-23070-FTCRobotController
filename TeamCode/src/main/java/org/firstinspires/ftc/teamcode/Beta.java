@@ -6,9 +6,9 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name="TeleOp v1 Beta Build")
+@TeleOp(name="TeleOp v1")
 public class Beta extends LinearOpMode {
-    private final static String BUILD_VERSION = "1.1.0";  // to avoid version control conflicts
+    private final static String BUILD_VERSION = "1.2.1";  // to avoid version control conflicts
 
     Project1Hardware robot;
     State state;
@@ -18,7 +18,7 @@ public class Beta extends LinearOpMode {
     ElapsedTime timer1 = new ElapsedTime();
     ElapsedTime timer2 = new ElapsedTime();
 
-    int selectedSliderPos = 0;
+    int selectedSliderPos = 50;
     boolean isReversing = false;
 
     @Override
@@ -52,7 +52,7 @@ public class Beta extends LinearOpMode {
             // Finite-state enums have been documented with javadoc.
             if (state == State.INITIALISED) {
                 robot.linkageDown();
-                robot.intakeUp();
+                robot.intakeSetPreset(Project1Hardware.INTAKE_POS.length - 1);
                 robot.intakeOff();
                 robot.clawRelease();
                 robot.scoring.setTransferPosition();
@@ -65,15 +65,12 @@ public class Beta extends LinearOpMode {
                     if (robot.intakeOn) robot.intakeOff(); else robot.intakeOn();
                 }
 
-                // Toggle intake arm
-                if (gamepad.right_bumper && !lastGamepad.right_bumper) {
-                    if (robot.intakeUp) robot.intakeDown(); else robot.intakeUp();
-                }
+                if (gamepad.right_bumper) robot.intakeDown();
+                if (gamepad.cross && !lastGamepad.cross) robot.intakeCyclePitch();
 
                 if (gamepad.circle) robot.intakeReverse();
-                else if (lastGamepad.circle && !gamepad.circle) robot.intakeOn();
+                else if (lastGamepad.circle && !gamepad.circle) robot.intakeOn(true);
 
-                // TODO: get colour-distance sensor values
                 if (robot.intakeLeftDetected() || gamepad.left_trigger > 0.7) {
                     gamepad.rumble(0.75, 0, 1);
                     robot.pixelIntakeStatus[0] = true;
@@ -98,10 +95,8 @@ public class Beta extends LinearOpMode {
 
             if (state == State.TRANSFER_CLAW) {
                 if (timer1.milliseconds() > 3600) {
-                    if (gamepad.right_bumper && !lastGamepad.right_bumper) {
-                        timer1.reset();
-                        state = State.TRANSFER_AWAIT_SLIDER;
-                    }
+                    timer1.reset();
+                    state = State.TRANSFER_AWAIT_SLIDER;
                 }
                 else if (timer1.milliseconds() > 3300) robot.linkageDown();
                 else if (timer1.milliseconds() > 3000) robot.clawGrip();
@@ -121,7 +116,7 @@ public class Beta extends LinearOpMode {
 
                 if (isReversing) {
                     if (timer2.milliseconds() > 1950) {
-                        robot.clawRelease();
+                        timer1.reset();
                         state = State.AWAIT;
                         isReversing = false;
                     }
@@ -144,9 +139,13 @@ public class Beta extends LinearOpMode {
                     }
 
                     if (isReversing) {
-                        if (timer2.milliseconds() > 800) {timer2.reset(); state = State.AWAIT;}
+                        if (timer2.milliseconds() > 800) {
+                            timer2.reset();
+                            state = State.TRANSFER_CLAW;
+                        }
                         else if (timer2.milliseconds() > 600) robot.linkageDown();
-                        else if (timer2.milliseconds() > 300) robot.clawRelease();
+                        else if (timer2.milliseconds() > 300) {robot.clawRelease();
+                        telemetry.addLine("clawrelease");}
                     }
                 }
             }
@@ -184,15 +183,14 @@ public class Beta extends LinearOpMode {
             }
 
             if (state == State.SCORING_READY) {
-                // TODO: add slow-mode and coordinate speed adjustments
                 if (gamepad.left_bumper) {robot.clawLeftOpen(); robot.scoredLeft = true;}
                 if (gamepad.right_bumper) {robot.clawRightOpen(); robot.scoredRight = true;}
 
                 // Orientation (roll) for scoring module.
-                if (gamepad.left_trigger > 0 && gamepad.right_trigger > 0)
-                    robot.scoring.setDiagonal();
-                else if (gamepad.left_trigger > 0) robot.scoring.setVertical();
-                else if (gamepad.right_trigger > 0) robot.scoring.setHorizontal();
+                if (gamepad.dpad_left) robot.selectedScoringPos
+                        = Range.clip(robot.selectedIntakePos - 1, 0, 2);
+                else if (gamepad.dpad_right) robot.selectedScoringPos
+                        = Range.clip(robot.selectedIntakePos + 1, 0, 2);
 
                 if (robot.scoredLeft && robot.scoredRight) {
                     timer1.reset();
@@ -201,6 +199,7 @@ public class Beta extends LinearOpMode {
 
                 robot.setSliderPositionCustom(selectedSliderPos);
                 robot.scoring.setScoringPosition();
+                robot.scoring.setPresetOrientation(robot.selectedIntakePos);
             }
 
             if (state == State.RETURNING) {
@@ -239,32 +238,52 @@ public class Beta extends LinearOpMode {
                 robot.scoredRight = false;
                 robot.pixelIntakeStatus = new boolean[] {false, false};
 
-                robot.intakeUp();
+                robot.intakeSetPreset(Project1Hardware.INTAKE_POS.length - 1);
                 state = State.AWAIT;
             }
 
             if (gamepad.touchpad) robot.imu.resetYaw();
-            if (gamepad.dpad_up)
-                selectedSliderPos = Range.clip(
-                        selectedSliderPos + 3,
-                        0,
-                        Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
-                );
-            if (gamepad.dpad_down)
-                selectedSliderPos = Range.clip(
-                        selectedSliderPos - 3,
-                        0, 
-                        Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
-                );
 
-            if (gamepad.options) robot.rigRelease(); else robot.rigReleaseReset();
-
-            if (gamepad.dpad_left) robot.rig();
-            else if (gamepad.share) robot.rigReverse();
-            else robot.rigStop();
-
-            if (gamepad.dpad_right && !lastGamepad.dpad_right) {
+            // Action buttons
+            if (gamepad.triangle && !lastGamepad.triangle) {
                 if (!robot.droneLaunched) robot.droneLaunch(); else robot.droneReset();
+                robot.rigRelease();
+            }
+
+            if (gamepad.square && !lastGamepad.square) {
+                if (robot.riggingMoving) robot.rigStop(); else robot.rig();
+            }
+            if (gamepad.share && !lastGamepad.share) {
+                if (robot.riggingMoving) robot.rigReverse(); else robot.rig();
+            }
+
+            // Sliders
+            if (gamepad.options) {
+                // Emergency resets.
+                // Up
+                if (gamepad.dpad_up && !lastGamepad.dpad_up) robot.debugSliderUp();
+                else if (!gamepad.dpad_up && lastGamepad.dpad_up) robot.debugSliderFinish();
+
+                // Down
+                if (gamepad.dpad_down && !lastGamepad.dpad_down) robot.debugSliderDown();
+                else if (!gamepad.dpad_down && lastGamepad.dpad_down) robot.debugSliderFinish();
+            } else {
+                // If slider debugging was interrupted - catch it and finish it.
+                if (robot.sliderDebugging) robot.debugSliderFinish();
+
+                // Misc. - adjusting slider positions.
+                if (gamepad.dpad_up)
+                    selectedSliderPos = Range.clip(
+                            selectedSliderPos + 6,
+                            0,
+                            Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
+                    );
+                if (gamepad.dpad_down)
+                    selectedSliderPos = Range.clip(
+                            selectedSliderPos - 6,
+                            0,
+                            Project1Hardware.SLIDER_POS[Project1Hardware.SLIDER_POS.length - 1]
+                    );
             }
 
             robot.drivetrain.remote(directionY, -directionX, -pivot, heading);
@@ -275,11 +294,9 @@ public class Beta extends LinearOpMode {
                             + robot.backLeft.getPower() + " | " + robot.backRight.getPower() + "\n"
             );
             telemetry.addData("STATE", state);
+            telemetry.addData("TARGET-INTAKE", robot.selectedIntakePos);
             telemetry.addData("TARGET-SLIDER", selectedSliderPos);
-//            telemetry.addData("INTAKE - L", robot.intakeLeftDetected());
-//            telemetry.addData("INTAKE - R", robot.intakeRightDetected());
-//            telemetry.addData("SCORED - L", robot.scoredLeft);
-//            telemetry.addData("SCORED - R", robot.scoredRight);
+            telemetry.addLine();
             robot.toTelemetry(telemetry);
             telemetry.update();
         }
@@ -291,7 +308,6 @@ public class Beta extends LinearOpMode {
         TRANSFER_CLAW,
         TRANSFER_AWAIT_SLIDER,
         TRANSFER_RAISING_SLIDER,
-        SLIDER_UP,
         TRANSITION_CLAW_1,
         SCORING_READY,
         RETURNING,

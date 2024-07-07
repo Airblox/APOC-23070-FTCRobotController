@@ -4,14 +4,14 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-@TeleOp(name="TeleOp v0 Simple Build")
+@TeleOp(name="TeleOp [Simple]")
 public class BetaSimple extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         Project1Hardware robot = Project1Hardware.init(hardwareMap);
         Gamepad gamepad = new Gamepad();
         Gamepad lastGamepad = new Gamepad();
-        
+
         double directionX, directionY, pivot, heading;
 
         waitForStart();
@@ -19,7 +19,7 @@ public class BetaSimple extends LinearOpMode {
         while (opModeIsActive()) {
             lastGamepad.copy(gamepad);
             gamepad.copy(gamepad1);
-            
+
             directionX = gamepad.left_stick_x;
             directionY = gamepad.left_stick_y;
             pivot = gamepad.right_stick_x;
@@ -27,9 +27,7 @@ public class BetaSimple extends LinearOpMode {
 
             if (gamepad.touchpad) robot.imu.resetYaw();
 
-            if (gamepad.triangle && !lastGamepad.triangle) {
-                if (robot.intakeUp) robot.intakeDown(); else robot.intakeUp();
-            }
+            if (gamepad.triangle && !lastGamepad.triangle) robot.intakeCyclePitch();
             if (gamepad.circle && !lastGamepad.circle) {
                 if (robot.intakeReversed) robot.intakeReverse(); else robot.intakeOn();
             }

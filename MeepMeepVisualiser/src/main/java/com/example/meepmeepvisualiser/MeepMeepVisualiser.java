@@ -21,9 +21,8 @@ public class MeepMeepVisualiser {
                 .build();
 
         myBot.runAction(myBot.getDrive().actionBuilder(startPose)
-                        .splineToSplineHeading(new Pose2d(10, -ONE_GRID * 1.5, Math.toRadians(0)), Math.PI/2)
-                        .setTangent(Math.toRadians(10))
-                        .lineToX(ONE_GRID*2.1)
+                        .strafeToLinearHeading(new Vector2d(10, -ONE_GRID * 1.5), Math.PI)
+                        .strafeToConstantHeading(new Vector2d(ONE_GRID * 2.1, -ONE_GRID * 1.2))
                         // First cycle
                         .setReversed(true)
                         .setTangent(Math.toRadians(152.5))
@@ -39,8 +38,7 @@ public class MeepMeepVisualiser {
                         .setTangent(Math.toRadians(0))
                         .splineToConstantHeading(new Vector2d(ONE_GRID*2.1, -1.2*ONE_GRID), Math.toRadians(-27.5))
                         // Parking
-                        .setTangent(Math.toRadians(90))
-                        .lineToY(-ONE_GRID/2)
+                        .strafeToConstantHeading(new Vector2d(ONE_GRID*2.1, -ONE_GRID/2))
                 .build());
 
         meepMeep.setBackground(MeepMeep.Background.FIELD_CENTERSTAGE_JUICE_DARK)

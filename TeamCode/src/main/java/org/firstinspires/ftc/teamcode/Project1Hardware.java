@@ -14,6 +14,12 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvPipeline;
 
 public class Project1Hardware {
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
@@ -32,16 +38,19 @@ public class Project1Hardware {
     Drivetrain drivetrain;
     ScoringModule scoring;
 
-    int selectedSliderPos;
-    boolean intakeOn, intakeUp, intakeReversed, lidUp;
+    int teamPropPos = 1;
+    int selectedIntakePos = 5, selectedScoringPos = 1;
+    boolean intakeOn, intakeReversed, intakeFromStack,lidUp;
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
+    boolean sliderDebugging;
     boolean clawLeftOpen, clawRightOpen;
-    boolean droneLaunched;
+    boolean droneLaunched, riggingMoving;
     boolean[] pixelIntakeStatus = new boolean[2];
     static final double INTAKE_OFFSET_L = 0.0;
     static final double INTAKE_OFFSET_R = -0.03;
-    static final int[] SLIDER_POS = {0, 0, 290, 560, 800};
+    static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
+    static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -153,9 +162,19 @@ public class Project1Hardware {
     /** Functionally same as {@link #getIMU()} but returns in degrees. */
     public double getIMUDegrees() {return Math.toDegrees(getIMU());}
 
-    // TODO: get intake values
     public void intakeOn() {
         intake.setPower(0.65);
+        counterroller.setPower(1);
+        intakeOn = true;
+        intakeReversed = false;
+    }
+
+    public void intakeOn(boolean override) {
+        if (override || !intakeFromStack) intakeOn(); else intakeOnForStack();
+    }
+
+    public void intakeOnForStack() {
+        intake.setPower(0.35);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
@@ -174,21 +193,26 @@ public class Project1Hardware {
         intakeOn = false;
     }
 
-    public void intakeUp() {
-        intakeL.setPosition(0.24 + INTAKE_OFFSET_L);
-        intakeR.setPosition(0.24 + INTAKE_OFFSET_R);
-        intakeUp = true;
+    private void intakeSetPitch(double pitch) {
+        intakeL.setPosition(pitch + INTAKE_OFFSET_L);
+        intakeR.setPosition(pitch + INTAKE_OFFSET_R);
     }
 
-    public void intakeDown() {
-        intakeL.setPosition(0.05 + INTAKE_OFFSET_L);
-        intakeR.setPosition(0.05 + INTAKE_OFFSET_R);
-        intakeUp = false;
+    public void intakeDown() {intakeSetPitch(Project1Hardware.INTAKE_POS[1]);}
+
+    /** Cycles between the preset intake heights. Cycles from 5 to 1. */
+    public void intakeCyclePitch() {
+        if (selectedIntakePos == 1) selectedIntakePos = 5; else selectedIntakePos--;
+        intakeSetPitch(INTAKE_POS[selectedIntakePos]);
+
+        if (intakeOn && !intakeReversed) intakeOn();  // Speed check for preset heights >1.
     }
 
-    public boolean intakeVoltageCheck() {
-        return false;
-    }
+    /**
+     * Manually sets the intake preset height.
+     * @param pos Preset height, from 1 to 5.
+     */
+    public void intakeSetPreset(int pos) {intakeSetPitch(INTAKE_POS[pos]);}
 
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
@@ -272,26 +296,68 @@ public class Project1Hardware {
      * Checks if the slider are in the selected preset height with a tolerance of 50.
      * @return The result, <code>true</code> or <code>false</code>.
      */
-    public boolean isSliderInPosition() {
-        return isSliderInPosition(50);
+    public boolean isSliderInPosition() {return isSliderInPosition(50);}
+
+    /**
+     * Runs the slider up at a power of 0.2 without encoder help. For when the sliders have
+     * problems during the game.
+     */
+    public void debugSliderUp() {
+        sliderDebugging = true;
+        vertLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        vertRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        vertLeft.setPower(0.2);
+        vertRight.setPower(0.2);
     }
 
-    // TODO: get rigging values
-    public void startRigging() {
-        rigging.setTargetPosition(1000);
-        rigging.setPower(1);
-        rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+    /**
+     * Runs the slider down at a power of 0.2 without encoder help. For when the sliders have
+     * problems during the game.
+     */
+    public void debugSliderDown() {
+        sliderDebugging = true;
+        vertLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        vertRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        vertLeft.setPower(-0.2);
+        vertRight.setPower(-0.2);
+    }
+
+    /**
+     * Finishes debugging the slider by resetting the encoder values and switching the mode back
+     * to <code>RUN_TO_POSITION</code>.
+     */
+    public void debugSliderFinish() {
+        vertLeft.setPower(0);
+        vertRight.setPower(0);
+        vertLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        vertRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        vertLeft.setTargetPosition(0);
+        vertRight.setTargetPosition(0);
+        vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        sliderDebugging = false;
     }
 
     /** Resets drone launcher back to position 0 in case of emergency. */
     public void droneReset() {drone.setPosition(0); droneLaunched = false;}
     public void droneLaunch() {drone.setPosition(0.8); droneLaunched = true;}
 
-    public void rig() {rigging.setPower(1); rigging.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);}
-    public void rigReleaseReset() {riggingRelease.setPosition(0.25);}
+    public void rig() {
+        rigging.setPower(1);
+        rigging.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        riggingMoving = true;
+    }
+
+    public void rigReverse() {
+        rigging.setPower(-1);
+        rigging.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        riggingMoving = true;
+    }
+
+    public void rigStop() {rigging.setPower(0); riggingMoving = false;}
+
     public void rigRelease() {riggingRelease.setPosition(0.5);}
-    public void rigReverse() {rigging.setPower(-1);}
-    public void rigStop() {rigging.setPower(0);}
+    public void rigReleaseReset() {riggingRelease.setPosition(0.25);}
 
     /**
      * Outputs values to the telemetry. This does not update the telemetry. Call
@@ -307,8 +373,8 @@ public class Project1Hardware {
 
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
-        if (intakeUp) intake.append("UP / "); else intake.append("DOWN / ");
         if (intakeReversed) intake.append("REVERSED"); else intake.append("FORWARD");
+        intake.append("INTAKE-PRESET / "); intake.append(selectedIntakePos);
         telemetry.addData("INTAKE", intake);
 
         if (linkageUp) telemetry.addData("TRANSFER LINKAGE", "UP");
@@ -496,7 +562,7 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.005;
+        public final static double TRANSFER_BASE = 0;
         public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 
@@ -585,6 +651,20 @@ public class Project1Hardware {
         /** Sets the orientation of scoring to diagonal. */
         public void setDiagonal() {setDifferences(HALF/2, -HALF/2);}
 
+        /**
+         * Sets the orientation of scoring to a preset.
+         * @param pos <code>0</code> - vertical;
+         *            <code>1</code> - diagonal;
+         *            <code>2</code> - horizontal (default).
+         */
+        public void setPresetOrientation(int pos) {
+            switch (pos) {
+                case 0: setVertical(); break;
+                case 1: setDiagonal(); break;
+                case 2: default: setHorizontal(); break;
+            }
+        }
+
         /** Sets the scoring module to ready-for-transfer position. */
         public void setTransferPosition() {setValues(TRANSFER_BASE, 0, 0);}
 
@@ -604,6 +684,133 @@ public class Project1Hardware {
             VERTICAL,
             DIAGONAL,
             CUSTOM
+        }
+    }
+
+    /** This class represents the OpenCV pipeline for the red side of the playing field. */
+    public class CVPipelineRed extends OpenCvPipeline {
+        Mat hsv = new Mat();
+        Mat leftCrop;
+        Mat midCrop;
+        Mat rightCrop;
+        Mat output = new Mat();
+        Scalar rectColour = new Scalar(255.0, 0.0, 0.0);
+        Scalar boundingRect = new Scalar(60.0, 255, 255);
+        double leftAvgFinal;
+        double midAvgFinal;
+        double rightAvgFinal;
+
+        public Mat processFrame(Mat input) {
+            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
+
+            Rect leftRect = new Rect(1, 160, 100, 100);
+            Rect midRect = new Rect(250, 160, 100, 100);
+            Rect rightRect = new Rect(530, 160, 100, 100);
+
+            input.copyTo(output);
+            Imgproc.rectangle(output, leftRect, rectColour, 2);
+            Imgproc.rectangle(output, midRect, rectColour, 2);
+            Imgproc.rectangle(output, rightRect, rectColour, 2);
+
+            leftCrop = hsv.submat(leftRect);
+            midCrop = hsv.submat(midRect);
+            rightCrop = hsv.submat(rightRect);
+
+            // Creating boundaries for red
+            Scalar lowHSV = new Scalar(0, 80, 70);  // Lenient lower bound
+            Scalar highHSV = new Scalar(10, 255, 255);  // Lenient higher bound
+
+            // Applying red filter
+            Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
+            Core.inRange(midCrop, lowHSV, highHSV, midCrop);
+            Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
+
+            Scalar leftAvg = Core.mean(leftCrop);
+            Scalar midAvg = Core.mean(midCrop);
+            Scalar rightAvg = Core.mean(rightCrop);
+
+            leftAvgFinal = leftAvg.val[0];
+            midAvgFinal = midAvg.val[0];
+            rightAvgFinal = rightAvg.val[0];
+
+            if (leftAvgFinal > midAvgFinal && leftAvgFinal > rightAvgFinal) {
+                // telemetry.addLine("Left");
+                Imgproc.rectangle(output, leftRect, boundingRect, -1);
+                teamPropPos = 0;
+            } else if (midAvgFinal > rightAvgFinal && midAvgFinal > leftAvgFinal) {
+                // telemetry.addLine("Middle");
+                Imgproc.rectangle(output, midRect, boundingRect, -1);
+                teamPropPos = 1;
+            } else if (rightAvgFinal > midAvgFinal && rightAvgFinal > leftAvgFinal) {
+                // telemetry.addLine("Right");
+                Imgproc.rectangle(output, rightRect, boundingRect, -1);
+                teamPropPos = 2;
+            }
+
+            return (output);
+        }
+    }
+
+    public class CVPipelineBlue extends OpenCvPipeline {
+        Mat hsv = new Mat();
+        Mat leftCrop;
+        Mat midCrop;
+        Mat rightCrop;
+        Mat output = new Mat();
+        Scalar rectColour = new Scalar(255.0, 0.0, 0.0);
+        Scalar boundingRect = new Scalar(60.0, 255, 255);
+        double leftAvgFinal;
+        double midAvgFinal;
+        double rightAvgFinal;
+
+        public Mat processFrame(Mat input) {
+            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
+
+            Rect leftRect = new Rect(1, 160, 100, 100);
+            Rect MidRect = new Rect(250, 160, 100, 100);
+            Rect rightRect = new Rect(530, 160, 100, 100);
+
+            input.copyTo(output);
+            Imgproc.rectangle(output, leftRect, rectColour, 2);
+            Imgproc.rectangle(output, MidRect, rectColour, 2);
+            Imgproc.rectangle(output, rightRect, rectColour, 2);
+
+            leftCrop = hsv.submat(leftRect);
+            midCrop = hsv.submat(MidRect);
+            rightCrop = hsv.submat(rightRect);
+
+            // Creating boundaries for blue
+            Scalar lowHSV = new Scalar(80, 80, 70); //lenient lower bound
+            Scalar highHSV = new Scalar(110, 240, 255);
+
+            // Applying red filter
+            Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
+            Core.inRange(midCrop, lowHSV, highHSV, midCrop);
+            Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
+
+            Scalar leftAvg = Core.mean(leftCrop);
+            Scalar midAvg = Core.mean(midCrop);
+            Scalar rightAvg = Core.mean(rightCrop);
+
+            leftAvgFinal = leftAvg.val[0];
+            midAvgFinal = midAvg.val[0];
+            rightAvgFinal = rightAvg.val[0];
+
+            if (leftAvgFinal > midAvgFinal && leftAvgFinal > rightAvgFinal) {
+                // telemetry.addLine("Left");
+                Imgproc.rectangle(output, leftRect, boundingRect, -1);
+                teamPropPos = 0;
+            } else if (midAvgFinal > rightAvgFinal && midAvgFinal > leftAvgFinal) {
+                // telemetry.addLine("Middle");
+                Imgproc.rectangle(output, MidRect, boundingRect, -1);
+                teamPropPos = 1;
+            } else if (rightAvgFinal > midAvgFinal && rightAvgFinal > leftAvgFinal) {
+                // telemetry.addLine("Right");
+                Imgproc.rectangle(output, rightRect, boundingRect, -1);
+                teamPropPos = 2;
+            }
+
+            return (output);
         }
     }
 }
