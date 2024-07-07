@@ -90,7 +90,7 @@ public class DriveConstants {
      */
     public static double MAX_VEL = MAX_RPM / 60 * GEAR_RATIO * WHEEL_RADIUS * 2 * Math.PI * 0.8;
     public static double MAX_ACCEL = MAX_VEL;
-    public static double MAX_ANG_VEL = Math.toRadians(299.4658071428571);
+    public static double MAX_ANG_VEL = Math.toRadians(284.34);
     public static double MAX_ANG_ACCEL = Math.toRadians(299.4658071428571);
 
     public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
