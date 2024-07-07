@@ -34,6 +34,9 @@ public class StandardTrackingWheelLocalizer extends ThreeTrackingWheelLocalizer 
     public static double LATERAL_DISTANCE = 13.4; // in; distance between the left and right wheels
     public static double FORWARD_OFFSET = 7; // in; offset of the lateral wheel
 
+    public static double X_MULTI=1.06;
+    public static double Y_MULTI = 1;
+
     private Encoder leftEncoder, rightEncoder, frontEncoder;
 
     private List<Integer> lastEncPositions, lastEncVels;
@@ -75,9 +78,9 @@ public class StandardTrackingWheelLocalizer extends ThreeTrackingWheelLocalizer 
         lastEncPositions.add(frontPos);
 
         return Arrays.asList(
-                encoderTicksToInches(leftPos),
-                encoderTicksToInches(rightPos),
-                encoderTicksToInches(frontPos)
+                encoderTicksToInches(leftPos)*X_MULTI,
+                encoderTicksToInches(rightPos)*X_MULTI,
+                encoderTicksToInches(frontPos)*Y_MULTI
         );
     }
 
