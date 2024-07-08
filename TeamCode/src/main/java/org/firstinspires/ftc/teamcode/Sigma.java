@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name="TeleOp v2")
 public class Sigma extends LinearOpMode {
-    private final static String BUILD_VERSION = "1.2.1";  // to avoid version control conflicts
+    private final static String BUILD_VERSION = "2.1.0";  // to avoid version control conflicts
 
     Project1Hardware robot;
     State state;
@@ -18,7 +18,7 @@ public class Sigma extends LinearOpMode {
     ElapsedTime timer1 = new ElapsedTime();
     ElapsedTime timer2 = new ElapsedTime();
 
-    int selectedSliderPos = 75;
+    int selectedSliderPos = 125;
     double timercur =0,imucur=0;
     boolean rightStickButtonPressed = false;
     boolean isReversing = false;
@@ -102,10 +102,10 @@ public class Sigma extends LinearOpMode {
                     else if (timer1.milliseconds() > 2300) robot.clawGrip();
                     else if (timer1.milliseconds() > 2100) robot.linkageUp();
                     else if (timer1.milliseconds() > 1400) robot.scoring.setTransferPosition();
-                    else if (timer1.milliseconds() > 1250) robot.scoring.setPitch(0.04);
+                    else if (timer1.milliseconds() > 1250) robot.scoring.setPitch(0.09);
                     else if (timer1.milliseconds() > 700) robot.lidUp();
                     else if (timer1.milliseconds() > 500) robot.intakeOff();
-                    else if (timer1.milliseconds() > 150) robot.scoring.setPitch(0.12);
+                    else if (timer1.milliseconds() > 150) robot.scoring.setPitch(0.16);
                     else if (timer1.milliseconds() > 100) robot.linkageSlightUp();
                     else if (timer1.milliseconds() > 10) robot.intakeOn();
 
@@ -127,20 +127,6 @@ public class Sigma extends LinearOpMode {
                         robot.linkageUp();
                     }
 
-                    if (isReversing) {
-                        if (timer2.milliseconds() > 1950) {
-                            timer1.reset();
-                            state = State.AWAIT;
-                            isReversing = false;
-                        } else if (timer2.milliseconds() > 1700)
-                            robot.scoring.setTransferPosition();
-                        else if (timer2.milliseconds() > 950) robot.lidDown();
-                        else if (timer2.milliseconds() > 700) robot.linkageDown();
-                        else if (timer2.milliseconds() > 300) robot.scoring.setPitch(0.3);
-                        else if (timer2.milliseconds() > 100) robot.clawRelease();
-                    }
-                    break;
-
                 case TRANSFER_AWAIT_SLIDER:
                     if (timer1.milliseconds() > 300) {
                         if (gamepad.right_bumper) state = State.TRANSFER_RAISING_SLIDER;
@@ -152,10 +138,18 @@ public class Sigma extends LinearOpMode {
                         }
 
                         if (isReversing) {
-                            if (timer2.milliseconds() > 800) {
-                                timer2.reset();
-                                state = State.TRANSFER_CLAW;
-                            } else if (timer2.milliseconds() > 600) robot.linkageDown();
+                            if (timer2.milliseconds() > 3320) {
+                                timer1.reset();
+                                state = State.AWAIT;
+                                isReversing = false;
+                            }
+                            else if (timer2.milliseconds() > 3100)
+                                robot.scoring.setTransferPosition();
+                            else if (timer2.milliseconds() > 2350) robot.lidDown();
+                            else if (timer2.milliseconds() > 1800) robot.linkageDown();
+                            else if (timer2.milliseconds() > 1100) robot.scoring.setPitch(0.16);
+                            else if (timer2.milliseconds() > 900) robot.clawRelease();
+                            else if (timer2.milliseconds() > 600) robot.linkageDown();
                             else if (timer2.milliseconds() > 300) robot.clawRelease();
                         }
                     }
@@ -203,23 +197,27 @@ public class Sigma extends LinearOpMode {
                         imucur = robot.getIMUDegrees();
                         rightStickButtonPressed=true;
                     }
-                    if(rightStickButtonPressed){
-                        if (timer1.milliseconds() - timercur > 200){
+                    if (rightStickButtonPressed) {
+                        if (timer1.milliseconds() - timercur > 200) {
                             pivot = robot.angle;
-                            if (Math.abs(robot.getIMUDegrees()-imucur-robot.angle)<5){
+                            if (Math.abs(robot.getIMUDegrees() - imucur-robot.angle) < 5) {
                                 pivot = 0;
                                 robot.angle = 0;
-                                rightStickButtonPressed=false;
+                                rightStickButtonPressed = false;
                             }
                         }
                         else robot.boardDistance(5);
                     }
 
                     // Orientation (roll) for scoring module.
-                    if (gamepad.dpad_left) robot.selectedScoringPos
-                            = Range.clip(robot.selectedIntakePos - 1, 0, 2);
-                    else if (gamepad.dpad_right) robot.selectedScoringPos
-                            = Range.clip(robot.selectedIntakePos + 1, 0, 2);
+                    if (gamepad.dpad_left && !lastGamepad.dpad_left) {
+                        robot.selectedScoringPos++;
+                        if (robot.selectedScoringPos == 3) robot.selectedScoringPos = 2;
+                    }
+                    else if (gamepad.dpad_right & !lastGamepad.dpad_right) {
+                        robot.selectedScoringPos--;
+                        if (robot.selectedScoringPos == -1) robot.selectedScoringPos = 0;
+                    }
 
                     if (robot.scoredLeft && robot.scoredRight) {
                         timer1.reset();
@@ -228,7 +226,7 @@ public class Sigma extends LinearOpMode {
 
                     robot.setSliderPositionCustom(selectedSliderPos);
                     robot.scoring.setScoringPosition();
-                    robot.scoring.setPresetOrientation(robot.selectedIntakePos);
+                    robot.scoring.setPresetOrientation(robot.selectedScoringPos);
                     break;
 
                 case RETURNING:

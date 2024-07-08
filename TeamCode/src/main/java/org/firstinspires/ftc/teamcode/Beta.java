@@ -1,12 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name="TeleOp v1")
+@TeleOp(name="TeleOp v1.2")
 public class Beta extends LinearOpMode {
     private final static String BUILD_VERSION = "1.2.1";  // to avoid version control conflicts
 
@@ -18,7 +19,7 @@ public class Beta extends LinearOpMode {
     ElapsedTime timer1 = new ElapsedTime();
     ElapsedTime timer2 = new ElapsedTime();
 
-    int selectedSliderPos = 50;
+    int selectedSliderPos = 125;
     boolean isReversing = false;
 
     @Override

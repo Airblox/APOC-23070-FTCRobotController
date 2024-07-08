@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
@@ -14,6 +16,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.opencv.core.Core;
@@ -21,10 +24,11 @@ import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvPipeline;
+import org.openftc.easyopencv.OpenCvWebcam;
 
-public class Project1Hardware {
-    DcMotorEx frontLeft, frontRight, backLeft, backRight;
+public class AutonRedNBHardware {
     DcMotorEx vertLeft, vertRight;
     DcMotorEx intake;
     DcMotorEx rigging;
@@ -37,11 +41,10 @@ public class Project1Hardware {
     ColorRangeSensor pixelLeft, pixelRight;
     DistanceSensor disL, disR;
     IMU imu;
-
-    Drivetrain drivetrain;
     ScoringModule scoring;
 
-    int selectedIntakePos = 5, selectedScoringPos = 2;
+    int teamPropPos = 1;
+    int selectedIntakePos = 5, selectedScoringPos = 1;
     double angle = 0;
     boolean intakeOn, intakeReversed, intakeFromStack, lidUp;
     boolean scoredLeft, scoredRight;
@@ -55,11 +58,7 @@ public class Project1Hardware {
     static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
-    private Project1Hardware(@NonNull HardwareMap hardwareMap) {
-        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
-        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
+    private AutonRedNBHardware(@NonNull HardwareMap hardwareMap) {
         vertLeft = hardwareMap.get(DcMotorEx.class, "vertLeft");
         vertRight = hardwareMap.get(DcMotorEx.class, "vertRight");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -83,7 +82,6 @@ public class Project1Hardware {
         disR = hardwareMap.get(DistanceSensor.class, "disR");
         imu = hardwareMap.get(IMU.class, "imu");
 
-        drivetrain = new Drivetrain(this);
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
@@ -95,10 +93,6 @@ public class Project1Hardware {
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
 
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         vertLeft.setDirection(DcMotorSimple.Direction.FORWARD);
         vertRight.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -111,19 +105,11 @@ public class Project1Hardware {
         clawRight.setDirection(Servo.Direction.REVERSE);
         counterroller.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);  // double check here
         vertLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         vertRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -144,9 +130,10 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware init(@NonNull HardwareMap hardwareMap) {
-        Project1Hardware result = new Project1Hardware(hardwareMap);
+    public static AutonRedNBHardware init(@NonNull HardwareMap hardwareMap) {
+        AutonRedNBHardware result = new AutonRedNBHardware(hardwareMap);
         result.resetValues();
+        result.imu.resetYaw();
         return result;
     }
 
@@ -157,8 +144,8 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
-        return new Project1Hardware(hardwareMap);
+    public static AutonRedNBHardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
+        return new AutonRedNBHardware(hardwareMap);
     }
 
     /** IMU getter function as a shortcut for better readability. Returns in radians.*/
@@ -377,12 +364,6 @@ public class Project1Hardware {
      * @param telemetry Telemetry object.
      */
     public void toTelemetry(Telemetry telemetry) {
-        telemetry.addLine(
-                "MOTOR POWERS\n"
-                        + frontLeft.getPower() + " | " + frontRight.getPower() + "\n"
-                        + backLeft.getPower() + " | " + backRight.getPower() + "\n"
-        );
-
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
         if (intakeReversed) intake.append("REVERSED\n"); else intake.append("FORWARD\n");
@@ -415,171 +396,13 @@ public class Project1Hardware {
         telemetry.addLine(scoringD);
     }
 
-    /** This class represents the robot's drivetrain. */
-    public static class Drivetrain {
-        Project1Hardware robot;
-        double max, sin, cos, theta, power, vertical, horizontal, pivot, heading;
-        double FLPower, FRPower, BLPower, BRPower;
-
-        public Drivetrain(Project1Hardware robot) {this.robot = robot;}
-
-        /**
-         * Classic drivetrain movement method - self explanatory.
-         * @param vertical Gamepad's vertical axis (y).
-         * @param horizontal Gamepad's horizontal axis (x).
-         * @param pivot Gamepad's rotational axis (<code>right_stick_x</code>).
-         * @param heading Robot's heading.
-         */
-        public void remote(double vertical, double horizontal, double pivot, double heading) {
-            this.vertical = vertical;
-            this.horizontal = horizontal;
-            this.pivot = pivot;
-            this.heading = heading ;
-
-            theta = 2 * Math.PI + Math.atan2(vertical,horizontal) - heading;
-            power = Math.hypot(horizontal, vertical);
-
-            sin = Math.sin(theta - Math.PI/4);
-            cos = Math.cos(theta - Math.PI/4);
-            max = Math.max(Math.abs(sin), Math.abs(cos));
-
-            FLPower = power * (cos/max) + pivot;
-            FRPower = power * sin/max - pivot;
-            BLPower = power * -(sin/max) - pivot;
-            BRPower = power * -(cos/max) + pivot;
-
-            robot.frontLeft.setPower(-FLPower);
-            robot.frontRight.setPower(-FRPower);
-            robot.backLeft.setPower(BLPower);
-            robot.backRight.setPower(BRPower);
-
-            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-
-        /** Also mecanum drive ({@link #remote(double, double, double, double) remote()}) but more
-         * organised.
-         * @param vertical Gamepad's vertical axis (y).
-         * @param horizontal Gamepad's horizontal axis (x).
-         * @param pivot Gamepad's rotational axis (<code>right_stick_x</code>).
-         * @param heading Robot's heading.
-         */
-        public void remote2(double vertical, double horizontal, double pivot, double heading) {
-            robot.frontLeft.setDirection(DcMotor.Direction.FORWARD);
-            robot.frontRight.setDirection(DcMotor.Direction.REVERSE);
-            robot.backLeft.setDirection(DcMotor.Direction.FORWARD);
-            robot.backRight.setDirection(DcMotor.Direction.REVERSE);
-
-            this.vertical = vertical;
-            this.horizontal = horizontal;
-            this.pivot = pivot;
-            this.heading = heading + (Math.PI/2);
-
-            theta = 2 * Math.PI + Math.atan2(vertical, horizontal) - heading;
-            power = Math.hypot(horizontal, vertical);
-
-            sin = Math.sin(theta - Math.PI/4);
-            cos = Math.cos(theta - Math.PI/4);
-            max = Math.max(Math.abs(sin), Math.abs(cos));
-
-            /*
-                FLPower = power * (cos/max) + pivot;
-                FRPower = power * (sin/max) - pivot;
-                BLPower = power * (sin/max) + pivot;
-                BRPower = power * (cos/max) - pivot;
-            */
-
-            FLPower = power * (cos/max) - pivot;
-            FRPower = power * (sin/max) + pivot;
-            BLPower = power * (sin/max) - pivot;
-            BRPower = power * (cos/max) + pivot;
-
-            robot.frontLeft.setPower(FLPower);
-            robot.frontRight.setPower(FRPower);
-            robot.backLeft.setPower(BLPower);
-            robot.backRight.setPower(BRPower);
-
-            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-
-        /** Undocumented - copied from MecanumDrive.java */
-        public void part1(double theta, double pivot, double power) {
-            theta = 2 * Math.PI + (theta / 360 * 2 * Math.PI) - Math.PI / 2;
-
-            sin = Math.sin(theta - Math.PI/4);
-            cos = Math.cos(theta - Math.PI/4);
-            max = Math.max(Math.abs(sin), Math.abs(cos));
-
-            FLPower = power * (cos/max) + pivot;
-            FRPower = power * sin/max - pivot;
-            BLPower = power * -(sin/max) - pivot;
-            BRPower = power * -(cos/max) + pivot;
-
-            robot.frontLeft.setPower(-FLPower);
-            robot.frontRight.setPower(-FRPower);
-            robot.backLeft.setPower(BLPower);
-            robot.backRight.setPower(BRPower);
-
-            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-
-        /** Undocumented - copied from MecanumDrive.java */
-        public void drive(double target, double power, double pivot, double distance) {
-
-            this.theta = Math.PI + (target * Math.PI/180);
-            sin = Math.sin(theta - Math.PI/4);
-            cos = Math.cos(theta - Math.PI/4);
-            max = Math.max(Math.abs(sin), Math.abs(cos));
-
-            int FL = robot.frontLeft.getCurrentPosition();
-            int FR = robot.frontRight.getCurrentPosition();
-            int BL = robot.backLeft.getCurrentPosition();
-            int BR = robot.backRight.getCurrentPosition();
-
-            double orig = FL;
-            double cur = orig;
-
-            while (Math.abs(cur - orig) <= distance) {
-                FL = robot.frontLeft.getCurrentPosition();
-                FR = robot.frontRight.getCurrentPosition();
-                BL = robot.backLeft.getCurrentPosition();
-                BR = robot.backRight.getCurrentPosition();
-
-                cur = FL;
-
-                FLPower = power * -(cos/max) + pivot;
-                FRPower = power * sin/max + pivot;
-                BLPower = power * -(sin/max) + pivot;
-                BRPower = power * cos/max + pivot;
-
-                robot.frontLeft.setPower(-FLPower);
-                robot.frontRight.setPower(-FRPower);
-                robot.backLeft.setPower(BLPower);
-                robot.backRight.setPower(BRPower);
-
-                robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            }
-        }
-    }
-
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.014;
+        public final static double TRANSFER_BASE = 0;
         public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 
