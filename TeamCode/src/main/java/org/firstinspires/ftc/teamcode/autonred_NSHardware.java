@@ -23,8 +23,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-public class Project1Hardware {
-    DcMotorEx frontLeft, frontRight, backLeft, backRight;
+public class autonred_NSHardware {
     DcMotorEx vertLeft, vertRight;
     DcMotorEx intake;
     DcMotorEx rigging;
@@ -56,11 +55,7 @@ public class Project1Hardware {
     static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
-    private Project1Hardware(@NonNull HardwareMap hardwareMap) {
-        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
-        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
+    autonred_NSHardware(@NonNull HardwareMap hardwareMap) {
         vertLeft = hardwareMap.get(DcMotorEx.class, "vertLeft");
         vertRight = hardwareMap.get(DcMotorEx.class, "vertRight");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -84,7 +79,6 @@ public class Project1Hardware {
         disR = hardwareMap.get(DistanceSensor.class, "disR");
         imu = hardwareMap.get(IMU.class, "imu");
 
-        drivetrain = new Drivetrain(this);
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
@@ -96,10 +90,6 @@ public class Project1Hardware {
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
 
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         vertLeft.setDirection(DcMotorSimple.Direction.FORWARD);
         vertRight.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -112,19 +102,11 @@ public class Project1Hardware {
         clawRight.setDirection(Servo.Direction.REVERSE);
         counterroller.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);  // double check here
         vertLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         vertRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -145,8 +127,8 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware init(@NonNull HardwareMap hardwareMap) {
-        Project1Hardware result = new Project1Hardware(hardwareMap);
+    public static autonred_NSHardware init(@NonNull HardwareMap hardwareMap) {
+        autonred_NSHardware result = new autonred_NSHardware(hardwareMap);
         result.resetValues();
         return result;
     }
@@ -158,8 +140,8 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
-        return new Project1Hardware(hardwareMap);
+    public static autonred_NSHardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
+        return new autonred_NSHardware(hardwareMap);
     }
 
     /** IMU getter function as a shortcut for better readability. Returns in radians.*/
@@ -378,11 +360,7 @@ public class Project1Hardware {
      * @param telemetry Telemetry object.
      */
     public void toTelemetry(Telemetry telemetry) {
-        telemetry.addLine(
-                "MOTOR POWERS\n"
-                        + frontLeft.getPower() + " | " + frontRight.getPower() + "\n"
-                        + backLeft.getPower() + " | " + backRight.getPower() + "\n"
-        );
+
 
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
