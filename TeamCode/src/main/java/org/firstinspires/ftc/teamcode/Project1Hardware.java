@@ -44,7 +44,7 @@ public class Project1Hardware {
     int teamPropPos = 1;
     int selectedIntakePos = 5, selectedScoringPos = 1;
     double angle = 0;
-    boolean intakeOn, intakeReversed, intakeFromStack,lidUp;
+    boolean intakeOn, intakeReversed, intakeFromStack, lidUp;
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean sliderDebugging;
@@ -223,7 +223,7 @@ public class Project1Hardware {
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
-    public void lidUp() {lid.setPosition(0.4); lidUp = true;}
+    public void lidUp() {lid.setPosition(0.3); lidUp = true;}
     public void lidDown() {lid.setPosition(1); lidUp = false;}
 
     // TODO: find linkage positions
@@ -386,9 +386,14 @@ public class Project1Hardware {
 
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
-        if (intakeReversed) intake.append("REVERSED"); else intake.append("FORWARD");
+        if (intakeReversed) intake.append("REVERSED\n"); else intake.append("FORWARD\n");
         intake.append("INTAKE-PRESET / "); intake.append(selectedIntakePos);
         telemetry.addData("INTAKE", intake);
+
+        StringBuilder detections = new StringBuilder();
+        if (intakeLeftDetected()) detections.append("X | "); else detections.append("- | ");
+        if (intakeRightDetected()) detections.append("X"); else detections.append("-");
+        telemetry.addData("PIXELS", detections);
 
         if (linkageUp) telemetry.addData("TRANSFER LINKAGE", "UP");
         else telemetry.addData("TRANSFER LINKAGE", "DOWN");
