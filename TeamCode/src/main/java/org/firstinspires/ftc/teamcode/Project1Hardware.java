@@ -222,11 +222,11 @@ public class Project1Hardware {
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
-    public void lidUp() {lid.setPosition(0.3); lidUp = true;}
+    public void lidUp() {lid.setPosition(0.28); lidUp = true;}
     public void lidDown() {lid.setPosition(1); lidUp = false;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.3); linkageUp = true;}
+    public void linkageUp() {linkage.setPosition(0.32); linkageUp = true;}
     public void linkageDown() {linkage.setPosition(0.9); linkageUp = false;}
 
     public void linkageSlightUp() {
@@ -235,11 +235,12 @@ public class Project1Hardware {
         linkageUp = false;
     }
 
+
     // TODO: find claw positions
     public void clawLeftOpen() {clawLeft.setPosition(0.15);}
     public void clawLeftClose() {clawLeft.setPosition(0.75);}
     public void clawRightOpen() {clawRight.setPosition(0.15);}
-    public void clawRightClose() {clawRight.setPosition(0.71);}
+    public void clawRightClose() {clawRight.setPosition(0.77);}
     /** Opens both claws. */
     public void clawRelease() {clawLeftOpen(); clawRightOpen();}
     /** Closes both claws. */
@@ -579,7 +580,7 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.014;
+        public final static double TRANSFER_BASE = 0.0115;
         public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 

@@ -95,14 +95,14 @@ public class Sigma extends LinearOpMode {
 
                 // TODO: need to tune to within 3 seconds
                 case TRANSFER_CLAW:
-                    if (timer1.milliseconds() > 2500) {
+                    if (timer1.milliseconds() > 2800) {
                         timer1.reset();
                         state = State.TRANSFER_AWAIT_SLIDER;
-                    } else if (timer1.milliseconds() > 2450) robot.intakeOff();
-                    else if (timer1.milliseconds() > 2300) robot.clawGrip();
-                    else if (timer1.milliseconds() > 2100) robot.linkageUp();
-                    else if (timer1.milliseconds() > 1400) robot.scoring.setTransferPosition();
-                    else if (timer1.milliseconds() > 1250) robot.scoring.setPitch(0.09);
+                    } else if (timer1.milliseconds() > 2750) robot.intakeOff();
+                    else if (timer1.milliseconds() > 2600) robot.clawGrip();
+                    else if (timer1.milliseconds() > 2400) robot.linkageUp();
+                    else if (timer1.milliseconds() > 1700) robot.scoring.setTransferPosition();
+                    else if (timer1.milliseconds() > 1550) robot.scoring.setPitch(0.09);
                     else if (timer1.milliseconds() > 700) robot.lidUp();
                     else if (timer1.milliseconds() > 500) robot.intakeOff();
                     else if (timer1.milliseconds() > 150) robot.scoring.setPitch(0.16);
