@@ -580,7 +580,7 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.0115;
+        public final static double TRANSFER_BASE = 0.0185;
         public final static double SCORING_BASE = 0.57;
         private double base, diffLeft, diffRight;
 
