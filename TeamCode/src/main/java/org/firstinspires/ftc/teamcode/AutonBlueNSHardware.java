@@ -152,8 +152,8 @@ public class AutonBlueNSHardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static AutonBlueNBHardware init(@NonNull HardwareMap hardwareMap) {
-        AutonBlueNBHardware result = new AutonBlueNBHardware(hardwareMap);
+    public static AutonBlueNSHardware init(@NonNull HardwareMap hardwareMap) {
+        AutonBlueNSHardware result = new AutonBlueNSHardware(hardwareMap);
         result.resetValues();
         return result;
     }

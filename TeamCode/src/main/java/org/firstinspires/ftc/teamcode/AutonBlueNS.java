@@ -23,6 +23,16 @@ public class AutonBlueNS extends LinearOpMode {
         TRANSITION_CLAW_2,
         RESET
     }
+    public enum camera_stage{
+        UNKNOWN,
+        LEFT,
+        RIGHT,
+        MIDDLE,
+        SCORING,
+        FINISH,
+        END
+    }
+    camera_stage cameraStage = camera_stage.UNKNOWN;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -35,6 +45,27 @@ public class AutonBlueNS extends LinearOpMode {
 
         state = State.INITIALISED;
         robot.clawGrip();
+        while (!opModeIsActive()){
+            telemetry.addLine("robot.initialized");
+            if (robot.teamprop_position==0){
+                //left
+                //cameraStage = camera_stage.LEFT;
+                telemetry.addLine("left");
+                cameraStage= camera_stage.LEFT;
+            } else if (robot.teamprop_position==1){
+                //center
+                //cameraStage = camera_stage.MIDDLE;
+                telemetry.addLine("middle");
+                telemetry.addLine("does this work?");
+                cameraStage= camera_stage.MIDDLE;
+            }else if (robot.teamprop_position==2){
+                //right
+                //cameraStage = camera_stage.RIGHT;
+                cameraStage= camera_stage.RIGHT;
+                telemetry.addLine("right");
+            }
+            telemetry.update();
+        }
         waitForStart();
         robot.imu.resetYaw();
         drive.setPoseEstimate(startPose);
@@ -52,9 +83,15 @@ public class AutonBlueNS extends LinearOpMode {
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(18.52,12.31))
                 .forward(5)
-                .addTemporalMarker(robot::intakeReverse)
+                .addTemporalMarker(()->{
+                    robot.intakeReverse();
+                    telemetry.addLine("middle");
+                    telemetry.update();
+                })
+                .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
                 .turn(Math.toRadians(80))
+                .forward(24)
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(10,32.08))
@@ -78,6 +115,8 @@ public class AutonBlueNS extends LinearOpMode {
                 .addTemporalMarker(()->{
                     timer1.reset();
                     state = State.SLIDERS;
+                    telemetry.addLine("middlescore");
+                    telemetry.update();
                 })
                 .build();
         TrajectorySequence rightscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
@@ -111,6 +150,29 @@ public class AutonBlueNS extends LinearOpMode {
                 telemetry.addLine("no");
                 telemetry.update();
                 drive.followTrajectorySequence(rightscore);
+            }
+            switch (cameraStage){
+                case LEFT:
+                    drive.followTrajectorySequence(left);
+                    drive.followTrajectorySequence(leftscore);
+                    cameraStage = camera_stage.SCORING;
+                    break;
+                case RIGHT:
+                    drive.followTrajectorySequence(right);
+                    drive.followTrajectorySequence(rightscore);
+                    cameraStage = camera_stage.SCORING;
+                    break;
+                case MIDDLE:
+                    telemetry.addLine("start");
+                    drive.followTrajectorySequence(middle);
+                    telemetry.addLine("next");
+                    drive.followTrajectorySequence(middlescore);
+                    cameraStage = camera_stage.SCORING;
+                    break;
+                case SCORING:
+                    break;
+                case FINISH:
+                    break;
             }
             switch (state){
                 case INITIALISED:
@@ -180,6 +242,7 @@ public class AutonBlueNS extends LinearOpMode {
                     break;
             }
             drive.update();
+            telemetry.update();
         }
     }
 }

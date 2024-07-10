@@ -34,7 +34,7 @@ public class AutonBlueNB extends LinearOpMode {
     camera_stage cameraStage = camera_stage.UNKNOWN;
     @Override
     public void runOpMode() throws InterruptedException {
-        AutonBlueNBHardware robot = AutonBlueNBHardware.init(hardwareMap);
+        AutonBlueNSHardware robot = AutonBlueNSHardware.init(hardwareMap);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         final Pose2d startPose = new Pose2d(-40, 63.51, Math.toRadians(270.00));
         int offset = 5;
@@ -45,7 +45,7 @@ public class AutonBlueNB extends LinearOpMode {
         robot.clawGrip();
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(33,32.08))
-                .turn(Math.toRadians(-90))
+                .turn(Math.toRadians(90))
                 .addTemporalMarker(()->{
                     robot.intakeReverse();
                 })
@@ -57,7 +57,7 @@ public class AutonBlueNB extends LinearOpMode {
                 .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(15,33))
-                .turn(Math.toRadians(180))
+                .turn(Math.toRadians(-180))
                 .addTemporalMarker(()->{
                             robot.intakeReverse();
                         }
@@ -67,12 +67,12 @@ public class AutonBlueNB extends LinearOpMode {
                             robot.intakeOff();
                         }
                 )
-                .turn(Math.toRadians(80))
+                .turn(Math.toRadians(-80))
                 .forward(24)
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(-50.46,15.91))
-                .turn(Math.toRadians(45))
+                .turn(Math.toRadians(-45))
                 .addTemporalMarker(()->{
                     robot.intakeReverse();
                 })
@@ -81,13 +81,13 @@ public class AutonBlueNB extends LinearOpMode {
                             robot.intakeOff();
                         }
                 )
-                .turn(Math.toRadians(40))
+                .turn(Math.toRadians(-40))
                 .build();
         TrajectorySequence leftscore = drive.trajectorySequenceBuilder(new Pose2d(33.0,32.08,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(0, 11.42))
-                .turn(Math.toRadians(30))
+                .turn(Math.toRadians(-30))
                 .lineToConstantHeading(new Vector2d(60, 40))
-                .turn(Math.toRadians(-35))
+                .turn(Math.toRadians(35))
                 .addTemporalMarker(()->{
                     timer1.reset();
                     state = State.SLIDERS;
@@ -95,9 +95,9 @@ public class AutonBlueNB extends LinearOpMode {
                 .build();
         TrajectorySequence middlescore = drive.trajectorySequenceBuilder(new Pose2d(33.0,32.08,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(0, 11.42))
-                .turn(Math.toRadians(30))
-                .lineToConstantHeading(new Vector2d(59, 32))
                 .turn(Math.toRadians(-30))
+                .lineToConstantHeading(new Vector2d(59, 32))
+                .turn(Math.toRadians(30))
                 .addTemporalMarker(()->{
                     timer1.reset();
                     state = State.SLIDERS;
@@ -105,9 +105,9 @@ public class AutonBlueNB extends LinearOpMode {
                 .build();
         TrajectorySequence rightscore = drive.trajectorySequenceBuilder(new Pose2d(33.0,32.08,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(0, 11.42))
-                .turn(Math.toRadians(30))
+                .turn(Math.toRadians(-30))
                 .lineToConstantHeading(new Vector2d(59, 30))
-                .turn(Math.toRadians(-25))
+                .turn(Math.toRadians(25))
                 .addTemporalMarker(()->{
                     timer1.reset();
                     state = State.SLIDERS;
@@ -237,6 +237,9 @@ public class AutonBlueNB extends LinearOpMode {
 
             }
             drive.update();
+            telemetry.addData("state",state);
+            telemetry.addData("camera_stage",cameraStage);
+            telemetry.update();
         }
     }
 }
