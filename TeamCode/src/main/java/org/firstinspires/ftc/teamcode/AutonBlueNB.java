@@ -70,31 +70,29 @@ public class AutonBlueNB extends LinearOpMode {
         robot.imu.resetYaw();
         drive.setPoseEstimate(startPose);
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(20.63,28.98))
+                .lineToConstantHeading(new Vector2d(55,30))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
-                .turn(Math.toRadians(130))
-                .lineToConstantHeading(new Vector2d(-36.52,-5))
                 .addTemporalMarker(robot::intakeOff)
-                .turn(Math.toRadians(140))
-                .forward(12)
+                .forward(24)
                 .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(18.52,12.31))
-                .forward(5)
+                .lineToConstantHeading(new Vector2d(12.52,30.31))
+                .turn(Math.toRadians(180))
                 .addTemporalMarker(()->{
                     robot.intakeReverse();
                     telemetry.addLine("middle");
                     telemetry.update();
                 })
                 .waitSeconds(1)
+                .forward(5)
                 .addTemporalMarker(robot::intakeOff)
-                .turn(Math.toRadians(80))
+                .turn(Math.toRadians(-80))
                 .forward(24)
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(10,32.08))
+                .lineToConstantHeading(new Vector2d(3,32.08))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
@@ -102,15 +100,14 @@ public class AutonBlueNB extends LinearOpMode {
                 .forward(24)
                 .build();
         TrajectorySequence leftscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .lineToConstantHeading(new Vector2d(60, 40))
-                .turn(Math.toRadians(-35))
+                .lineToConstantHeading(new Vector2d(63, 32))
                 .addTemporalMarker(()->{
                     timer1.reset();
                     state = State.SLIDERS;
                 })
                 .build();
         TrajectorySequence middlescore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .lineToConstantHeading(new Vector2d(59, 32))
+                .forward(24)
                 .turn(Math.toRadians(-30))
                 .addTemporalMarker(()->{
                     timer1.reset();
@@ -120,7 +117,7 @@ public class AutonBlueNB extends LinearOpMode {
                 })
                 .build();
         TrajectorySequence rightscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .lineToConstantHeading(new Vector2d(59, 30))
+                .lineToConstantHeading(new Vector2d(59, -20))
                 .turn(Math.toRadians(-25))
                 .addTemporalMarker(()->{
                     timer1.reset();
