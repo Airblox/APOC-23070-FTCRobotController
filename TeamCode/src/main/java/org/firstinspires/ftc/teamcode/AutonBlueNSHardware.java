@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.opencv.core.Core;
@@ -21,9 +22,12 @@ import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-public class autonred_NSHardware {
+public class AutonBlueNSHardware {
     DcMotorEx vertLeft, vertRight;
     DcMotorEx intake;
     DcMotorEx rigging;
@@ -36,6 +40,12 @@ public class autonred_NSHardware {
     ColorRangeSensor pixelLeft, pixelRight;
     DistanceSensor disL, disR;
     IMU imu;
+
+    WebcamName webcamName = null;
+
+    public OpenCvCamera webcam1 = null;
+
+    public static int teamprop_position;
 
     Drivetrain drivetrain;
     ScoringModule scoring;
@@ -55,7 +65,7 @@ public class autonred_NSHardware {
     static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
-    autonred_NSHardware(@NonNull HardwareMap hardwareMap) {
+    AutonBlueNSHardware(@NonNull HardwareMap hardwareMap) {
         vertLeft = hardwareMap.get(DcMotorEx.class, "vertLeft");
         vertRight = hardwareMap.get(DcMotorEx.class, "vertRight");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -78,6 +88,7 @@ public class autonred_NSHardware {
         disL = hardwareMap.get(DistanceSensor.class,"disL");
         disR = hardwareMap.get(DistanceSensor.class, "disR");
         imu = hardwareMap.get(IMU.class, "imu");
+        webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
@@ -85,6 +96,20 @@ public class autonred_NSHardware {
                 RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
                 RevHubOrientationOnRobot.UsbFacingDirection.UP
         )));
+
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam1 = OpenCvCameraFactory.getInstance().createWebcam(webcamName, cameraMonitorViewId);
+        webcam1.setPipeline(new bluePipeline());
+
+        webcam1.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            public void onOpened() {
+                webcam1.startStreaming(640, 360, OpenCvCameraRotation.UPSIDE_DOWN);
+            }
+
+            public void onError(int errorCode) {
+            }
+        });
+
 
         vertLeft.setTargetPosition(vertLeft.getCurrentPosition());
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
@@ -127,8 +152,8 @@ public class autonred_NSHardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static autonred_NSHardware init(@NonNull HardwareMap hardwareMap) {
-        autonred_NSHardware result = new autonred_NSHardware(hardwareMap);
+    public static AutonBlueNBHardware init(@NonNull HardwareMap hardwareMap) {
+        AutonBlueNBHardware result = new AutonBlueNBHardware(hardwareMap);
         result.resetValues();
         return result;
     }
@@ -140,8 +165,8 @@ public class autonred_NSHardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static autonred_NSHardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
-        return new autonred_NSHardware(hardwareMap);
+    public static AutonBlueNBHardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
+        return new AutonBlueNBHardware(hardwareMap);
     }
 
     /** IMU getter function as a shortcut for better readability. Returns in radians.*/
@@ -678,130 +703,73 @@ public class autonred_NSHardware {
         }
     }
 
-    /** This class represents the OpenCV pipeline for the red side of the playing field. */
-    public class CVPipelineRed extends OpenCvPipeline {
-        Mat hsv = new Mat();
+    public class bluePipeline extends OpenCvPipeline { //near board
+        Mat HSV = new Mat();
         Mat leftCrop;
         Mat midCrop;
         Mat rightCrop;
-        Mat output = new Mat();
-        Scalar rectColour = new Scalar(255.0, 0.0, 0.0);
+        double leftavgfin;
+        double midavgfin;
+        double rightavgfin;
+        Mat outPut = new Mat();
+        Scalar rectColor = new Scalar(255.0, 0.0, 0.0);
         Scalar boundingRect = new Scalar(60.0, 255, 255);
-        double leftAvgFinal;
-        double midAvgFinal;
-        double rightAvgFinal;
 
         public Mat processFrame(Mat input) {
-            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
 
-            Rect leftRect = new Rect(1, 160, 100, 100);
-            Rect midRect = new Rect(250, 160, 100, 100);
-            Rect rightRect = new Rect(530, 160, 100, 100);
+            Imgproc.cvtColor(input, HSV, Imgproc.COLOR_RGB2HSV);
+            //telemetry.addLine("pipeline running");
 
-            input.copyTo(output);
-            Imgproc.rectangle(output, leftRect, rectColour, 2);
-            Imgproc.rectangle(output, midRect, rectColour, 2);
-            Imgproc.rectangle(output, rightRect, rectColour, 2);
 
-            leftCrop = hsv.submat(leftRect);
-            midCrop = hsv.submat(midRect);
-            rightCrop = hsv.submat(rightRect);
+            Rect leftRect = new Rect(1, 110, 100, 100);
+            Rect MidRect = new Rect(280, 80, 100, 100);
+            Rect rightRect = new Rect(430, 80, 100, 100);
 
-            // Creating boundaries for red
-            Scalar lowHSV = new Scalar(0, 80, 70);  // Lenient lower bound
-            Scalar highHSV = new Scalar(10, 255, 255);  // Lenient higher bound
+            input.copyTo(outPut);
+            Imgproc.rectangle(outPut, leftRect, rectColor, 2);
+            Imgproc.rectangle(outPut, MidRect, rectColor, 2);
+            Imgproc.rectangle(outPut, rightRect, rectColor, 2);
 
-            // Applying red filter
-            Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
-            Core.inRange(midCrop, lowHSV, highHSV, midCrop);
-            Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
+            leftCrop = HSV.submat(leftRect);
+            midCrop = HSV.submat(MidRect);
+            rightCrop = HSV.submat(rightRect);
 
-            Scalar leftAvg = Core.mean(leftCrop);
-            Scalar midAvg = Core.mean(midCrop);
-            Scalar rightAvg = Core.mean(rightCrop);
-
-            leftAvgFinal = leftAvg.val[0];
-            midAvgFinal = midAvg.val[0];
-            rightAvgFinal = rightAvg.val[0];
-
-            if (leftAvgFinal > midAvgFinal && leftAvgFinal > rightAvgFinal) {
-                // telemetry.addLine("Left");
-                Imgproc.rectangle(output, leftRect, boundingRect, -1);
-                teamPropPos = 0;
-            } else if (midAvgFinal > rightAvgFinal && midAvgFinal > leftAvgFinal) {
-                // telemetry.addLine("Middle");
-                Imgproc.rectangle(output, midRect, boundingRect, -1);
-                teamPropPos = 1;
-            } else if (rightAvgFinal > midAvgFinal && rightAvgFinal > leftAvgFinal) {
-                // telemetry.addLine("Right");
-                Imgproc.rectangle(output, rightRect, boundingRect, -1);
-                teamPropPos = 2;
-            }
-
-            return (output);
-        }
-    }
-
-    public class CVPipelineBlue extends OpenCvPipeline {
-        Mat hsv = new Mat();
-        Mat leftCrop;
-        Mat midCrop;
-        Mat rightCrop;
-        Mat output = new Mat();
-        Scalar rectColour = new Scalar(255.0, 0.0, 0.0);
-        Scalar boundingRect = new Scalar(60.0, 255, 255);
-        double leftAvgFinal;
-        double midAvgFinal;
-        double rightAvgFinal;
-
-        public Mat processFrame(Mat input) {
-            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
-
-            Rect leftRect = new Rect(1, 160, 100, 100);
-            Rect MidRect = new Rect(250, 160, 100, 100);
-            Rect rightRect = new Rect(530, 160, 100, 100);
-
-            input.copyTo(output);
-            Imgproc.rectangle(output, leftRect, rectColour, 2);
-            Imgproc.rectangle(output, MidRect, rectColour, 2);
-            Imgproc.rectangle(output, rightRect, rectColour, 2);
-
-            leftCrop = hsv.submat(leftRect);
-            midCrop = hsv.submat(MidRect);
-            rightCrop = hsv.submat(rightRect);
-
-            // Creating boundaries for blue
+            //creating coundaries for blue
             Scalar lowHSV = new Scalar(80, 80, 70); //lenient lower bound
             Scalar highHSV = new Scalar(110, 240, 255);
 
-            // Applying red filter
+            //appying red filter
             Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
             Core.inRange(midCrop, lowHSV, highHSV, midCrop);
             Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
 
-            Scalar leftAvg = Core.mean(leftCrop);
-            Scalar midAvg = Core.mean(midCrop);
-            Scalar rightAvg = Core.mean(rightCrop);
+            Scalar leftavg = Core.mean(leftCrop);
+            Scalar midavg = Core.mean(midCrop);
+            Scalar rightavg = Core.mean(rightCrop);
 
-            leftAvgFinal = leftAvg.val[0];
-            midAvgFinal = midAvg.val[0];
-            rightAvgFinal = rightAvg.val[0];
+            leftavgfin = leftavg.val[0];
+            midavgfin = midavg.val[0];
+            rightavgfin = rightavg.val[0];
 
-            if (leftAvgFinal > midAvgFinal && leftAvgFinal > rightAvgFinal) {
-                // telemetry.addLine("Left");
-                Imgproc.rectangle(output, leftRect, boundingRect, -1);
-                teamPropPos = 0;
-            } else if (midAvgFinal > rightAvgFinal && midAvgFinal > leftAvgFinal) {
-                // telemetry.addLine("Middle");
-                Imgproc.rectangle(output, MidRect, boundingRect, -1);
-                teamPropPos = 1;
-            } else if (rightAvgFinal > midAvgFinal && rightAvgFinal > leftAvgFinal) {
-                // telemetry.addLine("Right");
-                Imgproc.rectangle(output, rightRect, boundingRect, -1);
-                teamPropPos = 2;
+            if (leftavgfin > midavgfin && leftavgfin > rightavgfin) {
+                //telemetry.addLine("Left");
+                Imgproc.rectangle(outPut, leftRect, boundingRect, -1);
+                teamprop_position = 0;
+            } else if (midavgfin > rightavgfin && midavgfin > leftavgfin) {
+                //telemetry.addLine("Middle");
+                Imgproc.rectangle(outPut, MidRect, boundingRect, -1);
+                teamprop_position = 1;
+            } else if (rightavgfin > midavgfin && rightavgfin > leftavgfin) {
+                //telemetry.addLine("Right");
+                Imgproc.rectangle(outPut, rightRect, boundingRect, -1);
+                teamprop_position = 2;
             }
 
-            return (output);
+
+            //telemetry.addData("Leftavg", leftavg.val[0]);
+            //telemetry.addData("Midavg", midavg.val[0]);
+            //telemetry.addData("Rightavg", rightavg.val[0]);
+            return (outPut);
         }
     }
 }

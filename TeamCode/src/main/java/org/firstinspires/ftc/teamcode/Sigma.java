@@ -55,7 +55,7 @@ public class Sigma extends LinearOpMode {
                 case INITIALISED:
                     robot.linkageDown();
                     robot.lidDown();
-                    robot.intakeSetPreset(Project1Hardware.INTAKE_POS.length - 1);
+                    robot.intakeSetPreset(1);
                     robot.intakeOff();
                     robot.clawRelease();
                     robot.scoring.setTransferPosition();
@@ -95,15 +95,21 @@ public class Sigma extends LinearOpMode {
 
                 // TODO: need to tune to within 3 seconds
                 case TRANSFER_CLAW:
-                    if (timer1.milliseconds() > 2800) {
+                    if (timer1.milliseconds() > 3425) {
                         timer1.reset();
                         state = State.TRANSFER_AWAIT_SLIDER;
-                    } else if (timer1.milliseconds() > 2750) robot.intakeOff();
-                    else if (timer1.milliseconds() > 2600) robot.clawGrip();
-                    else if (timer1.milliseconds() > 2400) robot.linkageUp();
+                    } else if (timer1.milliseconds() > 3200) robot.intakeOff();
+                    else if (timer1.milliseconds() > 3150) robot.clawGrip();
+                    else if (timer1.milliseconds() > 2000) {
+                        robot.setSliderPositionCustom(0);
+                        robot.linkageUp();
+                    }
                     else if (timer1.milliseconds() > 1700) robot.scoring.setTransferPosition();
-                    else if (timer1.milliseconds() > 1550) robot.scoring.setPitch(0.09);
-                    else if (timer1.milliseconds() > 700) robot.lidUp();
+                    else if (timer1.milliseconds() > 1550) robot.scoring.setPitch(0.05);
+                    else if (timer1.milliseconds() > 700) {
+                        robot.setSliderPositionCustom(25);
+                        robot.lidUp();
+                    }
                     else if (timer1.milliseconds() > 500) robot.intakeOff();
                     else if (timer1.milliseconds() > 150) robot.scoring.setPitch(0.16);
                     else if (timer1.milliseconds() > 100) robot.linkageSlightUp();
@@ -128,7 +134,7 @@ public class Sigma extends LinearOpMode {
                     }
 
                 case TRANSFER_AWAIT_SLIDER:
-                    if (timer1.milliseconds() > 300) {
+                    if (timer1.milliseconds() > 1200) {
                         if (gamepad.right_bumper) state = State.TRANSFER_RAISING_SLIDER;
 
                         if (!gamepad.left_bumper && lastGamepad.left_bumper) {
@@ -165,21 +171,17 @@ public class Sigma extends LinearOpMode {
                     break;
 
                 case TRANSITION_CLAW_1:
-                    if (timer1.milliseconds() > 1900) {
+                    if (timer1.milliseconds() > 1435) {
                         robot.scoring.setScoringPosition();
                         if (robot.isSliderInPosition()) {
                             timer1.reset();
                             state = State.SCORING_READY;
                         } else {
                             robot.setSliderPositionCustom(selectedSliderPos);
-                        }
-                    } else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.55);
-                    else if (timer1.milliseconds() > 1500) robot.scoring.setPitch(0.5);
-                    else if (timer1.milliseconds() > 1300) robot.scoring.setPitch(0.45);
-                    else if (timer1.milliseconds() > 1100) robot.scoring.setPitch(0.4);
-                    else if (timer1.milliseconds() > 900) robot.scoring.setPitch(0.35);
-                    else if (timer1.milliseconds() > 700) robot.scoring.setPitch(0.3);
-                    else if (timer1.milliseconds() > 500) robot.scoring.setPitch(0.25);
+                        }}
+                    else if (timer1.milliseconds() > 1200) robot.scoring.setPitch(0.5);
+                    else if (timer1.milliseconds() > 900) robot.scoring.setPitch(0.4);
+                    else if (timer1.milliseconds() > 600) robot.scoring.setPitch(0.3);
                     else if (timer1.milliseconds() > 300) robot.scoring.setPitch(0.2);
                     break;
 
@@ -212,7 +214,7 @@ public class Sigma extends LinearOpMode {
                     // Orientation (roll) for scoring module.
                     if (gamepad.dpad_left && !lastGamepad.dpad_left) {
                         robot.selectedScoringPos++;
-                        if (robot.selectedScoringPos == 3) robot.selectedScoringPos = 2;
+                        if (robot.selectedScoringPos == 5) robot.selectedScoringPos = 4;
                     }
                     else if (gamepad.dpad_right & !lastGamepad.dpad_right) {
                         robot.selectedScoringPos--;
@@ -230,30 +232,25 @@ public class Sigma extends LinearOpMode {
                     break;
 
                 case RETURNING:
-                    if (timer1.milliseconds() > 1750) {
+                    if (timer1.milliseconds() > 2350) {
                         timer1.reset();
                         state = State.TRANSITION_CLAW_2;
-                    } else if (timer1.milliseconds() > 1600) robot.scoring.setHorizontal();
-                    else if (timer1.milliseconds() > 1300) robot.lidDown();
-                    else if (timer1.milliseconds() > 1000) robot.linkageDown();
-                    else if (timer1.milliseconds() > 300) robot.setSliderPosition(0, 0.2);
+                    } else if (timer1.milliseconds() > 2300) robot.scoring.setHorizontal();
+                    else if (timer1.milliseconds() > 2000) robot.lidDown();
+                    else if (timer1.milliseconds() > 1700) robot.linkageDown();
+                    else if (timer1.milliseconds() > 1000) robot.setSliderPosition(0, 0.2);
                     break;
 
                 case TRANSITION_CLAW_2:
-                    if (timer1.milliseconds() > 1850) {
+                    if (timer1.milliseconds() > 2150) {
                         robot.scoring.setTransferPosition();
                         timer1.reset();
                         state = State.RESET;
-                    } else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.05);
-                    else if (timer1.milliseconds() > 1500) robot.scoring.setPitch(0.15);
-                    else if (timer1.milliseconds() > 1400) robot.scoring.setPitch(0.2);
-                    else if (timer1.milliseconds() > 1300) robot.scoring.setPitch(0.25);
-                    else if (timer1.milliseconds() > 1100) robot.scoring.setPitch(0.3);
-                    else if (timer1.milliseconds() > 1000) robot.scoring.setPitch(0.35);
-                    else if (timer1.milliseconds() > 800) robot.scoring.setPitch(0.4);
-                    else if (timer1.milliseconds() > 700) robot.scoring.setPitch(0.45);
-                    else if (timer1.milliseconds() > 500) robot.scoring.setPitch(0.5);
-                    else if (timer1.milliseconds() > 400) robot.scoring.setPitch(0.55);
+                    } else if (timer1.milliseconds() > 2000) robot.scoring.setPitch(0.02);
+                    else if (timer1.milliseconds() > 1850) robot.scoring.setPitch(0.05);
+                    else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.075);
+                    else if (timer1.milliseconds() > 900) robot.scoring.setPitch(0.1);
+                    else if (timer1.milliseconds() > 600) robot.scoring.setPitch(0.3);
                     else if (timer1.milliseconds() > 300) robot.scoring.setHorizontal();
                     break;
 
