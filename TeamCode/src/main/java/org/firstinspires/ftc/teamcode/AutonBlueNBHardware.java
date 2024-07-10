@@ -721,8 +721,8 @@ public class AutonBlueNBHardware {
             //telemetry.addLine("pipeline running");
 
 
-            Rect leftRect = new Rect(1, 120, 100, 100);
-            Rect MidRect = new Rect(260, 100, 100, 100);
+            Rect leftRect = new Rect(120, 120, 100, 100);
+            Rect MidRect = new Rect(320, 100, 100, 100);
             Rect rightRect = new Rect(520, 80, 100, 100);
 
 
