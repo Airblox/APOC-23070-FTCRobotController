@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
@@ -110,7 +111,6 @@ public class AutonBlueNBHardware {
             }
         });
 
-
         vertLeft.setTargetPosition(vertLeft.getCurrentPosition());
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
@@ -194,7 +194,7 @@ public class AutonBlueNBHardware {
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.45);
+        intake.setPower(-0.3);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -575,11 +575,13 @@ public class AutonBlueNBHardware {
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
-        Position position;
-        Orientation orientation;
+        Project1Hardware.ScoringModule.Position position;
+        Project1Hardware.ScoringModule.Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0;
-        public final static double SCORING_BASE = 0.57;
+        public final static double TRANSFER_BASE = 0.025;
+        public final static double SCORING_BASE = 0.56;
+        public final static double OFFSET_LEFT = 0.0;
+        public final static double OFFSET_RIGHT = 0.025;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
@@ -591,17 +593,17 @@ public class AutonBlueNBHardware {
 
         /** Sets servos' positions. Call after a method. */
         private void apply() {
-            left.setPosition(base + diffLeft);
-            right.setPosition(base + diffRight);
+            left.setPosition(base + OFFSET_LEFT + diffLeft);
+            right.setPosition(base + OFFSET_RIGHT + diffRight);
 
-            if (base == TRANSFER_BASE) position = Position.TRANSFER;
-            else if (base == SCORING_BASE) position = Position.SCORING;
-            else position = Position.CUSTOM;
+            if (base == TRANSFER_BASE) position = Project1Hardware.ScoringModule.Position.TRANSFER;
+            else if (base == SCORING_BASE) position = Project1Hardware.ScoringModule.Position.SCORING;
+            else position = Project1Hardware.ScoringModule.Position.CUSTOM;
 
-            if (diffLeft == 0 && diffRight == 0) orientation = Orientation.HORIZONTAL;
-            else if (diffLeft == HALF && diffRight == -HALF) orientation = Orientation.VERTICAL;
-            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Orientation.DIAGONAL;
-            else orientation = Orientation.CUSTOM;
+            if (diffLeft == 0 && diffRight == 0) orientation = Project1Hardware.ScoringModule.Orientation.HORIZONTAL;
+            else if (diffLeft == HALF && diffRight == -HALF) orientation = Project1Hardware.ScoringModule.Orientation.VERTICAL;
+            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Project1Hardware.ScoringModule.Orientation.DIAGONAL;
+            else orientation = Project1Hardware.ScoringModule.Orientation.CUSTOM;
         }
 
         /**
@@ -663,9 +665,11 @@ public class AutonBlueNBHardware {
 
         /** Sets the orientation of scoring to vertical. */
         public void setVertical() {setDifferences(HALF, -HALF);}
+        public void setVertical2() {setDifferences(-HALF, HALF);}
 
         /** Sets the orientation of scoring to diagonal. */
         public void setDiagonal() {setDifferences(HALF/2, -HALF/2);}
+        public void setDiagonal2() {setDifferences(-HALF/2, HALF/2);}
 
         /**
          * Sets the orientation of scoring to a preset.
@@ -675,9 +679,11 @@ public class AutonBlueNBHardware {
          */
         public void setPresetOrientation(int pos) {
             switch (pos) {
-                case 0: setVertical(); break;
-                case 1: setDiagonal(); break;
-                case 2: default: setHorizontal(); break;
+                case 0: setVertical2(); break;
+                case 1: setDiagonal2(); break;
+                default: case 2: setHorizontal(); break;
+                case 3: setDiagonal(); break;
+                case 4: setVertical(); break;
             }
         }
 

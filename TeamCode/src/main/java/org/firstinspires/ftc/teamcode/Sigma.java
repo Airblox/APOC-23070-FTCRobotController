@@ -58,7 +58,7 @@ public class Sigma extends LinearOpMode {
                     robot.intakeSetPreset(1);
                     robot.intakeOff();
                     robot.clawRelease();
-                    robot.scoring.setTransferPosition();
+                    robot.scoring.  setTransferPosition();
                     state = State.AWAIT;
                     break;
 

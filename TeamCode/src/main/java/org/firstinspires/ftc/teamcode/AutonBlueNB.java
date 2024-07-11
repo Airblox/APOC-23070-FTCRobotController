@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
@@ -7,6 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
@@ -38,13 +41,15 @@ public class AutonBlueNB extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         AutonBlueNBHardware robot = AutonBlueNBHardware.init(hardwareMap);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+        Telemetry DSTelemetry = telemetry;
+        MultipleTelemetry telemetry = new MultipleTelemetry(DSTelemetry, FtcDashboard.getInstance().getTelemetry());
         final Pose2d startPose = new Pose2d(15, 63.51, Math.toRadians(270.00));
         int offset = 5;
         ElapsedTime timer1 = new ElapsedTime();
+        ElapsedTime timer2 = new ElapsedTime();
         Pose2d poseEstimate;
 
         state = State.INITIALISED;
-        robot.clawGrip();
         while (!opModeIsActive()){
             telemetry.addLine("robot.initialized");
             if (robot.teamprop_position==0){
@@ -67,32 +72,38 @@ public class AutonBlueNB extends LinearOpMode {
             telemetry.update();
         }
         waitForStart();
+        timer2.reset();
         robot.imu.resetYaw();
         drive.setPoseEstimate(startPose);
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(55,30))
+                .lineToConstantHeading(new Vector2d(66,25))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .forward(24)
+                .forward(12)
                 .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(12.52,30.31))
+                .lineToConstantHeading(new Vector2d(9.52,32.31))
                 .turn(Math.toRadians(180))
+                .forward(6)
                 .addTemporalMarker(()->{
                     robot.intakeReverse();
                     telemetry.addLine("middle");
                     telemetry.update();
+                    robot.linkageUp();
                 })
-                .waitSeconds(1)
-                .forward(5)
-                .addTemporalMarker(robot::intakeOff)
+                .waitSeconds(0.5)
+                .forward(8)
+                .addTemporalMarker(() -> {
+                    robot.intakeOff();
+                    robot.clawGrip();
+                })
                 .turn(Math.toRadians(-80))
-                .forward(24)
+                .forward(43)
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(3,32.08))
+                .lineToConstantHeading(new Vector2d(5.65,29.08))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
@@ -100,27 +111,30 @@ public class AutonBlueNB extends LinearOpMode {
                 .forward(24)
                 .build();
         TrajectorySequence leftscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .lineToConstantHeading(new Vector2d(63, 32))
+                .lineToConstantHeading(new Vector2d(48, 33))
                 .addTemporalMarker(()->{
                     timer1.reset();
+                    // TODO: RENEABLE IT
                     state = State.SLIDERS;
                 })
                 .build();
         TrajectorySequence middlescore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .forward(24)
-                .turn(Math.toRadians(-30))
+                .strafeRight(10)
+//                .turn(Math.toRadians(-30))
                 .addTemporalMarker(()->{
                     timer1.reset();
+                    // TODO: RENABLE
                     state = State.SLIDERS;
                     telemetry.addLine("middlescore");
                     telemetry.update();
                 })
                 .build();
         TrajectorySequence rightscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
-                .lineToConstantHeading(new Vector2d(59, -20))
+                .lineToConstantHeading(new Vector2d(52, 24))
                 .turn(Math.toRadians(-25))
                 .addTemporalMarker(()->{
                     timer1.reset();
+                    // TODO: REENABLE
                     state = State.SLIDERS;
                 })
                 .build();
@@ -167,14 +181,11 @@ public class AutonBlueNB extends LinearOpMode {
                     cameraStage = camera_stage.SCORING;
                     break;
                 case SCORING:
-                    break;
                 case FINISH:
                     break;
             }
             switch (state){
                 case INITIALISED:
-                    robot.clawGrip();
-                    robot.linkageUp();
                     break;
                 case TRANSFER:
                     if (timer1.milliseconds() > 4000) state=State.RELEASE;
