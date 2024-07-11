@@ -16,12 +16,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvPipeline;
 
 public class Project1Hardware {
     DcMotorEx frontLeft, frontRight, backLeft, backRight;
@@ -51,8 +45,8 @@ public class Project1Hardware {
     boolean droneLaunched, riggingMoving;
     boolean[] pixelIntakeStatus = new boolean[2];
     static final double INTAKE_OFFSET_L = 0.0;
-    static final double INTAKE_OFFSET_R = -0.03;
-    static final double[] INTAKE_POS = {0, 0.055, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
+    static final double INTAKE_OFFSET_R = -0.02;
+    static final double[] INTAKE_POS = {0, 0.045, 0.06, 0.08, 0.09, 0.12};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
     private Project1Hardware(@NonNull HardwareMap hardwareMap) {
@@ -169,6 +163,14 @@ public class Project1Hardware {
 
     public void intakeOn() {
         intake.setPower(0.65);
+        counterroller.setPower(1);
+        intakeOn = true;
+        intakeReversed = false;
+    }
+
+    public void intakeOnNew() {
+        intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        intake.setVelocity(12, AngleUnit.DEGREES);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
@@ -347,9 +349,8 @@ public class Project1Hardware {
     public double ldis(){return disL.getDistance(DistanceUnit.CM);}
     public double rdis(){return disR.getDistance(DistanceUnit.CM);}
     public void boardDistance(int dis){
-        if ((Math.abs(ldis()-dis) > 1)||(Math.abs(rdis()-dis) > 1)){
-            angle=Math.atan((ldis()-rdis())/24);
-        }
+        if ((Math.abs(ldis() - dis) > 1) || (Math.abs(rdis() - dis) > 1))
+            angle = Math.atan((ldis() - rdis()) / 24);
     }
     /** Resets drone launcher back to position 0 in case of emergency. */
     public void droneReset() {drone.setPosition(0); droneLaunched = false;}
@@ -580,8 +581,10 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.013;
+        public final static double TRANSFER_BASE = 0.025;
         public final static double SCORING_BASE = 0.56;
+        public final static double OFFSET_LEFT = 0.0;
+        public final static double OFFSET_RIGHT = 0.025;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
@@ -593,8 +596,8 @@ public class Project1Hardware {
 
         /** Sets servos' positions. Call after a method. */
         private void apply() {
-            left.setPosition(base + diffLeft);
-            right.setPosition(base + diffRight);
+            left.setPosition(base + OFFSET_LEFT + diffLeft);
+            right.setPosition(base + OFFSET_RIGHT + diffRight);
 
             if (base == TRANSFER_BASE) position = Position.TRANSFER;
             else if (base == SCORING_BASE) position = Position.SCORING;

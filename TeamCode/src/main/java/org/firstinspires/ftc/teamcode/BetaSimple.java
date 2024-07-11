@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-@Disabled
 @TeleOp(name="TeleOp [Simple]")
 public class BetaSimple extends LinearOpMode {
     @Override
@@ -31,10 +30,10 @@ public class BetaSimple extends LinearOpMode {
 
             if (gamepad.triangle && !lastGamepad.triangle) robot.intakeCyclePitch();
             if (gamepad.circle && !lastGamepad.circle) {
-                if (robot.intakeReversed) robot.intakeReverse(); else robot.intakeOn();
+                if (robot.intakeReversed) robot.intakeReverse(); else robot.intakeOnNew();
             }
             if (gamepad.cross && !lastGamepad.cross) {
-                if (robot.intakeOn) robot.intakeOff(); else robot.intakeOn();
+                if (robot.intakeOn) robot.intakeOff(); else robot.intakeOnNew();
             }
             if (gamepad.square && !lastGamepad.square) {
                 if (robot.linkageUp) robot.linkageDown(); else robot.linkageUp();

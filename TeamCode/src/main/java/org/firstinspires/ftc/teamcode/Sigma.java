@@ -18,7 +18,7 @@ public class Sigma extends LinearOpMode {
     ElapsedTime timer1 = new ElapsedTime();
     ElapsedTime timer2 = new ElapsedTime();
 
-    int selectedSliderPos = 125;
+    int selectedSliderPos = 150;
     double timercur =0,imucur=0;
     boolean rightStickButtonPressed = false;
     boolean isReversing = false;
@@ -81,7 +81,7 @@ public class Sigma extends LinearOpMode {
                             = robot.intakeRightDetected() || gamepad.right_trigger > 0.7;
 
                     if (robot.pixelIntakeStatus[0] && robot.pixelIntakeStatus[1]) {
-                        gamepad1.rumble(100);
+                        gamepad1.rumble(400);
                         timer1.reset();
                         state = State.TRANSFER_CLAW;
                     }
@@ -95,17 +95,17 @@ public class Sigma extends LinearOpMode {
 
                 // TODO: need to tune to within 3 seconds
                 case TRANSFER_CLAW:
-                    if (timer1.milliseconds() > 3425) {
+                    if (timer1.milliseconds() > 3525) {
                         timer1.reset();
                         state = State.TRANSFER_AWAIT_SLIDER;
-                    } else if (timer1.milliseconds() > 3200) robot.intakeOff();
-                    else if (timer1.milliseconds() > 3150) robot.clawGrip();
-                    else if (timer1.milliseconds() > 2000) {
+                    } else if (timer1.milliseconds() > 3300) robot.intakeOff();
+                    else if (timer1.milliseconds() > 3250) robot.clawGrip();
+                    else if (timer1.milliseconds() > 2100) {
                         robot.setSliderPositionCustom(0);
                         robot.linkageUp();
                     }
-                    else if (timer1.milliseconds() > 1700) robot.scoring.setTransferPosition();
-                    else if (timer1.milliseconds() > 1550) robot.scoring.setPitch(0.05);
+                    else if (timer1.milliseconds() > 1800) robot.scoring.setTransferPosition();
+                    else if (timer1.milliseconds() > 1650) robot.scoring.setPitch(0.05);
                     else if (timer1.milliseconds() > 700) {
                         robot.setSliderPositionCustom(25);
                         robot.lidUp();
@@ -238,7 +238,7 @@ public class Sigma extends LinearOpMode {
                     } else if (timer1.milliseconds() > 2300) robot.scoring.setHorizontal();
                     else if (timer1.milliseconds() > 2000) robot.lidDown();
                     else if (timer1.milliseconds() > 1700) robot.linkageDown();
-                    else if (timer1.milliseconds() > 1000) robot.setSliderPosition(0, 0.2);
+                    else if (timer1.milliseconds() > 1000) robot.setSliderPosition(0, 0.5);
                     break;
 
                 case TRANSITION_CLAW_2:
