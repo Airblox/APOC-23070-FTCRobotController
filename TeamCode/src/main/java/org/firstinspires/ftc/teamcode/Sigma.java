@@ -72,11 +72,12 @@ public class Sigma extends LinearOpMode {
                     if (gamepad.right_bumper) robot.intakeDown();
                     if (gamepad.cross && !lastGamepad.cross) robot.intakeCyclePitch();
 
-                    if (gamepad.circle) robot.intakeReverse();
-                    else if (lastGamepad.circle && !gamepad.circle) robot.intakeOn(true);
+                    if (gamepad.circle && !lastGamepad.circle) {
+                        if (robot.intakeReversed) robot.intakeOn(); else robot.intakeReverse();
+                    }
 
                     robot.pixelIntakeStatus[0]
-                            = robot.intakeLeftDetected() || gamepad.left_trigger > 0.7;
+                            = robot.intakeLeftDetected() || gamepad.right_trigger > 0.7;
                     robot.pixelIntakeStatus[1]
                             = robot.intakeRightDetected() || gamepad.right_trigger > 0.7;
 
@@ -275,10 +276,10 @@ public class Sigma extends LinearOpMode {
             }
 
             if (gamepad.square && !lastGamepad.square) {
-                if (robot.riggingMoving) robot.rigStop(); else robot.rig();
+                if (robot.riggingMoving) robot.rigStop(); else robot.rigReverse();
             }
             if (gamepad.share && !lastGamepad.share) {
-                if (robot.riggingMoving) robot.rigStop(); else robot.rigReverse();
+                if (robot.riggingMoving) robot.rigStop(); else robot.rig();
             }
 
             // Sliders

@@ -194,7 +194,7 @@ public class AutonBlueNSHardware {
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.45);
+        intake.setPower(-0.4);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -722,8 +722,8 @@ public class AutonBlueNSHardware {
 
 
             Rect leftRect = new Rect(1, 110, 100, 100);
-            Rect MidRect = new Rect(280, 80, 100, 100);
-            Rect rightRect = new Rect(430, 80, 100, 100);
+            Rect MidRect = new Rect(210, 90, 100, 100);
+            Rect rightRect = new Rect(420, 90, 100, 100);
 
             input.copyTo(outPut);
             Imgproc.rectangle(outPut, leftRect, rectColor, 2);

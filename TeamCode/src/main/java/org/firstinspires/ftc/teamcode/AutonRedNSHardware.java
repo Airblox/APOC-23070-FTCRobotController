@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
@@ -14,11 +15,20 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvPipeline;
 
-public class Project1Hardware {
-    DcMotorEx frontLeft, frontRight, backLeft, backRight;
+public class AutonRedNSHardware {
     DcMotorEx vertLeft, vertRight;
     DcMotorEx intake;
     DcMotorEx rigging;
@@ -32,12 +42,19 @@ public class Project1Hardware {
     DistanceSensor disL, disR;
     IMU imu;
 
+    WebcamName webcamName = null;
+
+    public OpenCvCamera webcam1 = null;
+
+    public static int teamprop_position;
+
     Drivetrain drivetrain;
     ScoringModule scoring;
 
-    int selectedIntakePos = 1, selectedScoringPos = 2;
+    int teamPropPos = 1;
+    int selectedIntakePos = 5, selectedScoringPos = 1;
     double angle = 0;
-    boolean intakeOn, intakeReversed, intakeFromStack, lidUp;
+    boolean intakeOn, intakeReversed, intakeFromStack,lidUp;
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean sliderDebugging;
@@ -45,15 +62,11 @@ public class Project1Hardware {
     boolean droneLaunched, riggingMoving;
     boolean[] pixelIntakeStatus = new boolean[2];
     static final double INTAKE_OFFSET_L = 0.0;
-    static final double INTAKE_OFFSET_R = -0.02;
-    static final double[] INTAKE_POS = {0, 0.045, 0.06, 0.08, 0.09, 0.12};  // Dummy @ pos 0.
+    static final double INTAKE_OFFSET_R = -0.03;
+    static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
-    private Project1Hardware(@NonNull HardwareMap hardwareMap) {
-        frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
-        backRight = hardwareMap.get(DcMotorEx.class, "backRight");
+    AutonRedNSHardware(@NonNull HardwareMap hardwareMap) {
         vertLeft = hardwareMap.get(DcMotorEx.class, "vertLeft");
         vertRight = hardwareMap.get(DcMotorEx.class, "vertRight");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -76,8 +89,8 @@ public class Project1Hardware {
         disL = hardwareMap.get(DistanceSensor.class,"disL");
         disR = hardwareMap.get(DistanceSensor.class, "disR");
         imu = hardwareMap.get(IMU.class, "imu");
+        webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
-        drivetrain = new Drivetrain(this);
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
@@ -85,14 +98,23 @@ public class Project1Hardware {
                 RevHubOrientationOnRobot.UsbFacingDirection.UP
         )));
 
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam1 = OpenCvCameraFactory.getInstance().createWebcam(webcamName, cameraMonitorViewId);
+        webcam1.setPipeline(new bluePipeline());
+
+        webcam1.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            public void onOpened() {
+                webcam1.startStreaming(640, 360, OpenCvCameraRotation.UPSIDE_DOWN);
+            }
+
+            public void onError(int errorCode) {
+            }
+        });
+
         vertLeft.setTargetPosition(vertLeft.getCurrentPosition());
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
         rigging.setTargetPosition(rigging.getCurrentPosition());
 
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
         vertLeft.setDirection(DcMotorSimple.Direction.FORWARD);
         vertRight.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -105,19 +127,11 @@ public class Project1Hardware {
         clawRight.setDirection(Servo.Direction.REVERSE);
         counterroller.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         vertLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         vertRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rigging.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);  // double check here
         vertLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         vertRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -138,8 +152,8 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware init(@NonNull HardwareMap hardwareMap) {
-        Project1Hardware result = new Project1Hardware(hardwareMap);
+    public static AutonRedNSHardware init(@NonNull HardwareMap hardwareMap) {
+        AutonRedNSHardware result = new AutonRedNSHardware(hardwareMap);
         result.resetValues();
         return result;
     }
@@ -151,8 +165,8 @@ public class Project1Hardware {
      * @param hardwareMap Hardware map to pass in, supplied in the OpMode class.
      * @return Resulting instance.
      */
-    public static Project1Hardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
-        return new Project1Hardware(hardwareMap);
+    public static AutonRedNSHardware initWithoutReset(@NonNull HardwareMap hardwareMap) {
+        return new AutonRedNSHardware(hardwareMap);
     }
 
     /** IMU getter function as a shortcut for better readability. Returns in radians.*/
@@ -163,14 +177,6 @@ public class Project1Hardware {
 
     public void intakeOn() {
         intake.setPower(0.65);
-        counterroller.setPower(1);
-        intakeOn = true;
-        intakeReversed = false;
-    }
-
-    public void intakeOnNew() {
-        intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        intake.setVelocity(12, AngleUnit.DEGREES);
         counterroller.setPower(1);
         intakeOn = true;
         intakeReversed = false;
@@ -188,7 +194,7 @@ public class Project1Hardware {
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.45);
+        intake.setPower(-0.3);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -224,11 +230,11 @@ public class Project1Hardware {
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
-    public void lidUp() {lid.setPosition(0.28); lidUp = true;}
+    public void lidUp() {lid.setPosition(0.4); lidUp = true;}
     public void lidDown() {lid.setPosition(1); lidUp = false;}
 
     // TODO: find linkage positions
-    public void linkageUp() {linkage.setPosition(0.32); linkageUp = true;}
+    public void linkageUp() {linkage.setPosition(0.3); linkageUp = true;}
     public void linkageDown() {linkage.setPosition(0.9); linkageUp = false;}
 
     public void linkageSlightUp() {
@@ -237,12 +243,11 @@ public class Project1Hardware {
         linkageUp = false;
     }
 
-
     // TODO: find claw positions
     public void clawLeftOpen() {clawLeft.setPosition(0.15);}
     public void clawLeftClose() {clawLeft.setPosition(0.75);}
     public void clawRightOpen() {clawRight.setPosition(0.15);}
-    public void clawRightClose() {clawRight.setPosition(0.77);}
+    public void clawRightClose() {clawRight.setPosition(0.71);}
     /** Opens both claws. */
     public void clawRelease() {clawLeftOpen(); clawRightOpen();}
     /** Closes both claws. */
@@ -349,8 +354,9 @@ public class Project1Hardware {
     public double ldis(){return disL.getDistance(DistanceUnit.CM);}
     public double rdis(){return disR.getDistance(DistanceUnit.CM);}
     public void boardDistance(int dis){
-        if ((Math.abs(ldis() - dis) > 1) || (Math.abs(rdis() - dis) > 1))
-            angle = Math.atan((ldis() - rdis()) / 24);
+        if ((Math.abs(ldis()-dis) > 1)||(Math.abs(rdis()-dis) > 1)){
+            angle=Math.atan((ldis()-rdis())/24);
+        }
     }
     /** Resets drone launcher back to position 0 in case of emergency. */
     public void droneReset() {drone.setPosition(0); droneLaunched = false;}
@@ -370,7 +376,7 @@ public class Project1Hardware {
 
     public void rigStop() {rigging.setPower(0); riggingMoving = false;}
 
-    public void rigRelease() {riggingRelease.setPosition(0.37);}
+    public void rigRelease() {riggingRelease.setPosition(0.5);}
     public void rigReleaseReset() {riggingRelease.setPosition(0.25);}
 
     /**
@@ -379,22 +385,13 @@ public class Project1Hardware {
      * @param telemetry Telemetry object.
      */
     public void toTelemetry(Telemetry telemetry) {
-        telemetry.addLine(
-                "MOTOR POWERS\n"
-                        + frontLeft.getPower() + " | " + frontRight.getPower() + "\n"
-                        + backLeft.getPower() + " | " + backRight.getPower() + "\n"
-        );
+
 
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
-        if (intakeReversed) intake.append("REVERSED\n"); else intake.append("FORWARD\n");
+        if (intakeReversed) intake.append("REVERSED"); else intake.append("FORWARD");
         intake.append("INTAKE-PRESET / "); intake.append(selectedIntakePos);
         telemetry.addData("INTAKE", intake);
-
-        StringBuilder detections = new StringBuilder();
-        if (intakeLeftDetected()) detections.append("X | "); else detections.append("- | ");
-        if (intakeRightDetected()) detections.append("X"); else detections.append("-");
-        telemetry.addData("PIXELS", detections);
 
         if (linkageUp) telemetry.addData("TRANSFER LINKAGE", "UP");
         else telemetry.addData("TRANSFER LINKAGE", "DOWN");
@@ -578,13 +575,13 @@ public class Project1Hardware {
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
-        Position position;
-        Orientation orientation;
+        Project1Hardware.ScoringModule.Position position;
+        Project1Hardware.ScoringModule.Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.02;
+        public final static double TRANSFER_BASE = 0.025;
         public final static double SCORING_BASE = 0.56;
         public final static double OFFSET_LEFT = 0.0;
-        public final static double OFFSET_RIGHT = 0.0;
+        public final static double OFFSET_RIGHT = 0.025;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
@@ -599,14 +596,14 @@ public class Project1Hardware {
             left.setPosition(base + OFFSET_LEFT + diffLeft);
             right.setPosition(base + OFFSET_RIGHT + diffRight);
 
-            if (base == TRANSFER_BASE) position = Position.TRANSFER;
-            else if (base == SCORING_BASE) position = Position.SCORING;
-            else position = Position.CUSTOM;
+            if (base == TRANSFER_BASE) position = Project1Hardware.ScoringModule.Position.TRANSFER;
+            else if (base == SCORING_BASE) position = Project1Hardware.ScoringModule.Position.SCORING;
+            else position = Project1Hardware.ScoringModule.Position.CUSTOM;
 
-            if (diffLeft == 0 && diffRight == 0) orientation = Orientation.HORIZONTAL;
-            else if (diffLeft == HALF && diffRight == -HALF) orientation = Orientation.VERTICAL;
-            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Orientation.DIAGONAL;
-            else orientation = Orientation.CUSTOM;
+            if (diffLeft == 0 && diffRight == 0) orientation = Project1Hardware.ScoringModule.Orientation.HORIZONTAL;
+            else if (diffLeft == HALF && diffRight == -HALF) orientation = Project1Hardware.ScoringModule.Orientation.VERTICAL;
+            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Project1Hardware.ScoringModule.Orientation.DIAGONAL;
+            else orientation = Project1Hardware.ScoringModule.Orientation.CUSTOM;
         }
 
         /**
@@ -709,6 +706,74 @@ public class Project1Hardware {
             VERTICAL,
             DIAGONAL,
             CUSTOM
+        }
+    }
+
+    public class bluePipeline extends OpenCvPipeline { //near board
+        Mat HSV = new Mat();
+        Mat leftCrop;
+        Mat midCrop;
+        Mat rightCrop;
+        double leftavgfin;
+        double midavgfin;
+        double rightavgfin;
+        Mat outPut = new Mat();
+        Scalar rectColor = new Scalar(255.0, 0.0, 0.0);
+        Scalar boundingRect = new Scalar(60.0, 255, 255);
+
+        public Mat processFrame(Mat input) {
+
+            Imgproc.cvtColor(input, HSV, Imgproc.COLOR_RGB2HSV);
+            //telemetry.addLine("pipeline running");
+
+            Rect leftRect = new Rect(120, 120, 100, 100);
+            Rect MidRect = new Rect(320, 100, 100, 100);
+            Rect rightRect = new Rect(520, 80, 100, 100);
+
+            input.copyTo(outPut);
+            Imgproc.rectangle(outPut, leftRect, rectColor, 2);
+            Imgproc.rectangle(outPut, MidRect, rectColor, 2);
+            Imgproc.rectangle(outPut, rightRect, rectColor, 2);
+
+            leftCrop = HSV.submat(leftRect);
+            midCrop = HSV.submat(MidRect);
+            rightCrop = HSV.submat(rightRect);
+
+            //creating coundaries for red
+            Scalar lowHSV = new Scalar(0, 80, 70); //lenient lower bound
+            Scalar highHSV = new Scalar(10, 255, 255);//lenient higher bound
+
+            //appying red filter
+            Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
+            Core.inRange(midCrop, lowHSV, highHSV, midCrop);
+            Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
+
+            Scalar leftavg = Core.mean(leftCrop);
+            Scalar midavg = Core.mean(midCrop);
+            Scalar rightavg = Core.mean(rightCrop);
+
+            leftavgfin = leftavg.val[0];
+            midavgfin = midavg.val[0];
+            rightavgfin = rightavg.val[0];
+
+            if (leftavgfin > midavgfin && leftavgfin > rightavgfin) {
+                //telemetry.addLine("Left");
+                Imgproc.rectangle(outPut, leftRect, boundingRect, -1);
+                teamPropPos = 0;
+            } else if (midavgfin > rightavgfin && midavgfin > leftavgfin) {
+                //telemetry.addLine("Middle");
+                Imgproc.rectangle(outPut, MidRect, boundingRect, -1);
+                teamPropPos = 1;
+            } else if (rightavgfin > midavgfin && rightavgfin > leftavgfin) {
+                //telemetry.addLine("Right");
+                Imgproc.rectangle(outPut, rightRect, boundingRect, -1);
+                teamPropPos = 2;
+            }
+
+            //telemetry.addData("Leftavg", leftavg.val[0]);
+            //telemetry.addData("Midavg", midavg.val[0]);
+            //telemetry.addData("Rightavg", rightavg.val[0]);
+            return (outPut);
         }
     }
 }

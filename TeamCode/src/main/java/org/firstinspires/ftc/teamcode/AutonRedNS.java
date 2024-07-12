@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 @Autonomous
-public class AutonRedNB extends LinearOpMode {
+public class AutonRedNS extends LinearOpMode {
     State state;
 
     enum State {
@@ -36,9 +36,9 @@ public class AutonRedNB extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        AutonRedNBHardware robot = AutonRedNBHardware.init(hardwareMap);
+        AutonRedNSHardware robot = AutonRedNSHardware.init(hardwareMap);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-        final Pose2d startPose = new Pose2d(15, -63.51, Math.toRadians(90));
+        final Pose2d startPose = new Pose2d(8, -63.51, Math.toRadians(90));
         int offset = 5;
         ElapsedTime timer1 = new ElapsedTime();
         Pose2d poseEstimate;
@@ -46,15 +46,15 @@ public class AutonRedNB extends LinearOpMode {
 
         robot.clawGrip();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(-2,-28))
+                .lineToConstantHeading(new Vector2d(10,-35))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .strafeLeft(50)
-                .turn(Math.toRadians(180))
-                .forward(40)
-                .strafeRight(20)
+                .forward(5)
+                .strafeRight(45)
+                .turn(Math.toRadians(155))
+                .forward(90)
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
@@ -63,13 +63,15 @@ public class AutonRedNB extends LinearOpMode {
                 .build();
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(10,-32.08))
-                .turn(Math.toRadians(-85))
+                .turn(Math.toRadians(-80))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .strafeRight(50)
-                .forward(50)
-                .strafeRight(20)
+                .forward(5)
+                .strafeLeft(45)
+                .forward(30)
+                .turn(Math.toRadians(10))
+                .forward(60)
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
@@ -85,15 +87,17 @@ public class AutonRedNB extends LinearOpMode {
 //                .forward(40)
 //                .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(10,-36.08))
-                .turn(Math.toRadians(180))
+                .lineToConstantHeading(new Vector2d(10,-17))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
+                .forward(5)
+                .turn(Math.toRadians(-75))
+                .forward(40)
+                .turn(Math.toRadians(5))
                 .forward(50)
                 .turn(Math.toRadians(90))
-                .forward(40)
-                .turn(Math.toRadians(90))
+                .forward(5)
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
                         }

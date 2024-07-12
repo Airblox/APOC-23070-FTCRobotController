@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.annotation.SuppressLint;
-
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServoImplEx;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
@@ -24,9 +23,10 @@ import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
-import org.openftc.easyopencv.OpenCvWebcam;
 
 public class AutonRedNBHardware {
     DcMotorEx vertLeft, vertRight;
@@ -41,12 +41,20 @@ public class AutonRedNBHardware {
     ColorRangeSensor pixelLeft, pixelRight;
     DistanceSensor disL, disR;
     IMU imu;
+
+    WebcamName webcamName = null;
+
+    public OpenCvCamera webcam1 = null;
+
+    public static int teamprop_position;
+
+    Drivetrain drivetrain;
     ScoringModule scoring;
 
     int teamPropPos = 1;
     int selectedIntakePos = 5, selectedScoringPos = 1;
     double angle = 0;
-    boolean intakeOn, intakeReversed, intakeFromStack, lidUp;
+    boolean intakeOn, intakeReversed, intakeFromStack,lidUp;
     boolean scoredLeft, scoredRight;
     boolean linkageUp;
     boolean sliderDebugging;
@@ -58,7 +66,7 @@ public class AutonRedNBHardware {
     static final double[] INTAKE_POS = {0.05, 0.05, 0.07, 0.09, 0.1, 0.13};  // Dummy @ pos 0.
     static final int[] SLIDER_POS = {0, 50, 290, 560, 800};
 
-    private AutonRedNBHardware(@NonNull HardwareMap hardwareMap) {
+    AutonRedNBHardware(@NonNull HardwareMap hardwareMap) {
         vertLeft = hardwareMap.get(DcMotorEx.class, "vertLeft");
         vertRight = hardwareMap.get(DcMotorEx.class, "vertRight");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
@@ -81,6 +89,7 @@ public class AutonRedNBHardware {
         disL = hardwareMap.get(DistanceSensor.class,"disL");
         disR = hardwareMap.get(DistanceSensor.class, "disR");
         imu = hardwareMap.get(IMU.class, "imu");
+        webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         scoring = new ScoringModule(scoringLeft, scoringRight);
 
@@ -88,6 +97,19 @@ public class AutonRedNBHardware {
                 RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
                 RevHubOrientationOnRobot.UsbFacingDirection.UP
         )));
+
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam1 = OpenCvCameraFactory.getInstance().createWebcam(webcamName, cameraMonitorViewId);
+        webcam1.setPipeline(new bluePipeline());
+
+        webcam1.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            public void onOpened() {
+                webcam1.startStreaming(640, 360, OpenCvCameraRotation.UPSIDE_DOWN);
+            }
+
+            public void onError(int errorCode) {
+            }
+        });
 
         vertLeft.setTargetPosition(vertLeft.getCurrentPosition());
         vertRight.setTargetPosition(vertRight.getCurrentPosition());
@@ -133,7 +155,6 @@ public class AutonRedNBHardware {
     public static AutonRedNBHardware init(@NonNull HardwareMap hardwareMap) {
         AutonRedNBHardware result = new AutonRedNBHardware(hardwareMap);
         result.resetValues();
-        result.imu.resetYaw();
         return result;
     }
 
@@ -173,7 +194,7 @@ public class AutonRedNBHardware {
     }
 
     public void intakeReverse() {
-        intake.setPower(-0.45);
+        intake.setPower(-0.3);
         counterroller.setPower(-1);
         intakeOn = true;
         intakeReversed = true;
@@ -209,7 +230,7 @@ public class AutonRedNBHardware {
     public boolean intakeLeftDetected() {return pixelLeft.getLightDetected() > 0.8;}
     public boolean intakeRightDetected() {return pixelRight.getLightDetected() > 0.5;}
 
-    public void lidUp() {lid.setPosition(0.3); lidUp = true;}
+    public void lidUp() {lid.setPosition(0.4); lidUp = true;}
     public void lidDown() {lid.setPosition(1); lidUp = false;}
 
     // TODO: find linkage positions
@@ -364,16 +385,13 @@ public class AutonRedNBHardware {
      * @param telemetry Telemetry object.
      */
     public void toTelemetry(Telemetry telemetry) {
+
+
         StringBuilder intake =  new StringBuilder();
         if (intakeOn) intake.append("ON / "); else intake.append("OFF / ");
-        if (intakeReversed) intake.append("REVERSED\n"); else intake.append("FORWARD\n");
+        if (intakeReversed) intake.append("REVERSED"); else intake.append("FORWARD");
         intake.append("INTAKE-PRESET / "); intake.append(selectedIntakePos);
         telemetry.addData("INTAKE", intake);
-
-        StringBuilder detections = new StringBuilder();
-        if (intakeLeftDetected()) detections.append("X | "); else detections.append("- | ");
-        if (intakeRightDetected()) detections.append("X"); else detections.append("-");
-        telemetry.addData("PIXELS", detections);
 
         if (linkageUp) telemetry.addData("TRANSFER LINKAGE", "UP");
         else telemetry.addData("TRANSFER LINKAGE", "DOWN");
@@ -396,14 +414,174 @@ public class AutonRedNBHardware {
         telemetry.addLine(scoringD);
     }
 
+    /** This class represents the robot's drivetrain. */
+    public static class Drivetrain {
+        Project1Hardware robot;
+        double max, sin, cos, theta, power, vertical, horizontal, pivot, heading;
+        double FLPower, FRPower, BLPower, BRPower;
+
+        public Drivetrain(Project1Hardware robot) {this.robot = robot;}
+
+        /**
+         * Classic drivetrain movement method - self explanatory.
+         * @param vertical Gamepad's vertical axis (y).
+         * @param horizontal Gamepad's horizontal axis (x).
+         * @param pivot Gamepad's rotational axis (<code>right_stick_x</code>).
+         * @param heading Robot's heading.
+         */
+        public void remote(double vertical, double horizontal, double pivot, double heading) {
+            this.vertical = vertical;
+            this.horizontal = horizontal;
+            this.pivot = pivot;
+            this.heading = heading ;
+
+            theta = 2 * Math.PI + Math.atan2(vertical,horizontal) - heading;
+            power = Math.hypot(horizontal, vertical);
+
+            sin = Math.sin(theta - Math.PI/4);
+            cos = Math.cos(theta - Math.PI/4);
+            max = Math.max(Math.abs(sin), Math.abs(cos));
+
+            FLPower = power * (cos/max) + pivot;
+            FRPower = power * sin/max - pivot;
+            BLPower = power * -(sin/max) - pivot;
+            BRPower = power * -(cos/max) + pivot;
+
+            robot.frontLeft.setPower(-FLPower);
+            robot.frontRight.setPower(-FRPower);
+            robot.backLeft.setPower(BLPower);
+            robot.backRight.setPower(BRPower);
+
+            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        /** Also mecanum drive ({@link #remote(double, double, double, double) remote()}) but more
+         * organised.
+         * @param vertical Gamepad's vertical axis (y).
+         * @param horizontal Gamepad's horizontal axis (x).
+         * @param pivot Gamepad's rotational axis (<code>right_stick_x</code>).
+         * @param heading Robot's heading.
+         */
+        public void remote2(double vertical, double horizontal, double pivot, double heading) {
+            robot.frontLeft.setDirection(DcMotor.Direction.FORWARD);
+            robot.frontRight.setDirection(DcMotor.Direction.REVERSE);
+            robot.backLeft.setDirection(DcMotor.Direction.FORWARD);
+            robot.backRight.setDirection(DcMotor.Direction.REVERSE);
+
+            this.vertical = vertical;
+            this.horizontal = horizontal;
+            this.pivot = pivot;
+            this.heading = heading + (Math.PI/2);
+
+            theta = 2 * Math.PI + Math.atan2(vertical, horizontal) - heading;
+            power = Math.hypot(horizontal, vertical);
+
+            sin = Math.sin(theta - Math.PI/4);
+            cos = Math.cos(theta - Math.PI/4);
+            max = Math.max(Math.abs(sin), Math.abs(cos));
+
+            /*
+                FLPower = power * (cos/max) + pivot;
+                FRPower = power * (sin/max) - pivot;
+                BLPower = power * (sin/max) + pivot;
+                BRPower = power * (cos/max) - pivot;
+            */
+
+            FLPower = power * (cos/max) - pivot;
+            FRPower = power * (sin/max) + pivot;
+            BLPower = power * (sin/max) - pivot;
+            BRPower = power * (cos/max) + pivot;
+
+            robot.frontLeft.setPower(FLPower);
+            robot.frontRight.setPower(FRPower);
+            robot.backLeft.setPower(BLPower);
+            robot.backRight.setPower(BRPower);
+
+            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        /** Undocumented - copied from MecanumDrive.java */
+        public void part1(double theta, double pivot, double power) {
+            theta = 2 * Math.PI + (theta / 360 * 2 * Math.PI) - Math.PI / 2;
+
+            sin = Math.sin(theta - Math.PI/4);
+            cos = Math.cos(theta - Math.PI/4);
+            max = Math.max(Math.abs(sin), Math.abs(cos));
+
+            FLPower = power * (cos/max) + pivot;
+            FRPower = power * sin/max - pivot;
+            BLPower = power * -(sin/max) - pivot;
+            BRPower = power * -(cos/max) + pivot;
+
+            robot.frontLeft.setPower(-FLPower);
+            robot.frontRight.setPower(-FRPower);
+            robot.backLeft.setPower(BLPower);
+            robot.backRight.setPower(BRPower);
+
+            robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        /** Undocumented - copied from MecanumDrive.java */
+        public void drive(double target, double power, double pivot, double distance) {
+
+            this.theta = Math.PI + (target * Math.PI/180);
+            sin = Math.sin(theta - Math.PI/4);
+            cos = Math.cos(theta - Math.PI/4);
+            max = Math.max(Math.abs(sin), Math.abs(cos));
+
+            int FL = robot.frontLeft.getCurrentPosition();
+            int FR = robot.frontRight.getCurrentPosition();
+            int BL = robot.backLeft.getCurrentPosition();
+            int BR = robot.backRight.getCurrentPosition();
+
+            double orig = FL;
+            double cur = orig;
+
+            while (Math.abs(cur - orig) <= distance) {
+                FL = robot.frontLeft.getCurrentPosition();
+                FR = robot.frontRight.getCurrentPosition();
+                BL = robot.backLeft.getCurrentPosition();
+                BR = robot.backRight.getCurrentPosition();
+
+                cur = FL;
+
+                FLPower = power * -(cos/max) + pivot;
+                FRPower = power * sin/max + pivot;
+                BLPower = power * -(sin/max) + pivot;
+                BRPower = power * cos/max + pivot;
+
+                robot.frontLeft.setPower(-FLPower);
+                robot.frontRight.setPower(-FRPower);
+                robot.backLeft.setPower(BLPower);
+                robot.backRight.setPower(BRPower);
+
+                robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            }
+        }
+    }
+
     /** This class represents the scoring module. */
     public static class ScoringModule {
         ServoImplEx left, right;
-        Position position;
-        Orientation orientation;
+        Project1Hardware.ScoringModule.Position position;
+        Project1Hardware.ScoringModule.Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0;
-        public final static double SCORING_BASE = 0.57;
+        public final static double TRANSFER_BASE = 0.025;
+        public final static double SCORING_BASE = 0.56;
+        public final static double OFFSET_LEFT = 0.0;
+        public final static double OFFSET_RIGHT = 0.025;
         private double base, diffLeft, diffRight;
 
         public ScoringModule(ServoImplEx left, ServoImplEx right) {
@@ -415,17 +593,17 @@ public class AutonRedNBHardware {
 
         /** Sets servos' positions. Call after a method. */
         private void apply() {
-            left.setPosition(base + diffLeft);
-            right.setPosition(base + diffRight);
+            left.setPosition(base + OFFSET_LEFT + diffLeft);
+            right.setPosition(base + OFFSET_RIGHT + diffRight);
 
-            if (base == TRANSFER_BASE) position = Position.TRANSFER;
-            else if (base == SCORING_BASE) position = Position.SCORING;
-            else position = Position.CUSTOM;
+            if (base == TRANSFER_BASE) position = Project1Hardware.ScoringModule.Position.TRANSFER;
+            else if (base == SCORING_BASE) position = Project1Hardware.ScoringModule.Position.SCORING;
+            else position = Project1Hardware.ScoringModule.Position.CUSTOM;
 
-            if (diffLeft == 0 && diffRight == 0) orientation = Orientation.HORIZONTAL;
-            else if (diffLeft == HALF && diffRight == -HALF) orientation = Orientation.VERTICAL;
-            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Orientation.DIAGONAL;
-            else orientation = Orientation.CUSTOM;
+            if (diffLeft == 0 && diffRight == 0) orientation = Project1Hardware.ScoringModule.Orientation.HORIZONTAL;
+            else if (diffLeft == HALF && diffRight == -HALF) orientation = Project1Hardware.ScoringModule.Orientation.VERTICAL;
+            else if (diffLeft == HALF/2 && diffRight == -HALF/2) orientation = Project1Hardware.ScoringModule.Orientation.DIAGONAL;
+            else orientation = Project1Hardware.ScoringModule.Orientation.CUSTOM;
         }
 
         /**
@@ -487,9 +665,11 @@ public class AutonRedNBHardware {
 
         /** Sets the orientation of scoring to vertical. */
         public void setVertical() {setDifferences(HALF, -HALF);}
+        public void setVertical2() {setDifferences(-HALF, HALF);}
 
         /** Sets the orientation of scoring to diagonal. */
         public void setDiagonal() {setDifferences(HALF/2, -HALF/2);}
+        public void setDiagonal2() {setDifferences(-HALF/2, HALF/2);}
 
         /**
          * Sets the orientation of scoring to a preset.
@@ -499,9 +679,11 @@ public class AutonRedNBHardware {
          */
         public void setPresetOrientation(int pos) {
             switch (pos) {
-                case 0: setVertical(); break;
-                case 1: setDiagonal(); break;
-                case 2: default: setHorizontal(); break;
+                case 0: setVertical2(); break;
+                case 1: setDiagonal2(); break;
+                default: case 2: setHorizontal(); break;
+                case 3: setDiagonal(); break;
+                case 4: setVertical(); break;
             }
         }
 
@@ -524,6 +706,74 @@ public class AutonRedNBHardware {
             VERTICAL,
             DIAGONAL,
             CUSTOM
+        }
+    }
+
+    public class bluePipeline extends OpenCvPipeline { //near board
+        Mat HSV = new Mat();
+        Mat leftCrop;
+        Mat midCrop;
+        Mat rightCrop;
+        double leftavgfin;
+        double midavgfin;
+        double rightavgfin;
+        Mat outPut = new Mat();
+        Scalar rectColor = new Scalar(255.0, 0.0, 0.0);
+        Scalar boundingRect = new Scalar(60.0, 255, 255);
+
+        public Mat processFrame(Mat input) {
+
+            Imgproc.cvtColor(input, HSV, Imgproc.COLOR_RGB2HSV);
+            //telemetry.addLine("pipeline running");
+
+            Rect leftRect = new Rect(1, 110, 100, 100);
+            Rect MidRect = new Rect(210, 90, 100, 100);
+            Rect rightRect = new Rect(420, 90, 100, 100);
+
+            input.copyTo(outPut);
+            Imgproc.rectangle(outPut, leftRect, rectColor, 2);
+            Imgproc.rectangle(outPut, MidRect, rectColor, 2);
+            Imgproc.rectangle(outPut, rightRect, rectColor, 2);
+
+            leftCrop = HSV.submat(leftRect);
+            midCrop = HSV.submat(MidRect);
+            rightCrop = HSV.submat(rightRect);
+
+            //creating coundaries for red
+            Scalar lowHSV = new Scalar(0, 80, 70); //lenient lower bound
+            Scalar highHSV = new Scalar(10, 255, 255);//lenient higher bound
+
+            //appying red filter
+            Core.inRange(leftCrop, lowHSV, highHSV, leftCrop);
+            Core.inRange(midCrop, lowHSV, highHSV, midCrop);
+            Core.inRange(rightCrop, lowHSV, highHSV, rightCrop);
+
+            Scalar leftavg = Core.mean(leftCrop);
+            Scalar midavg = Core.mean(midCrop);
+            Scalar rightavg = Core.mean(rightCrop);
+
+            leftavgfin = leftavg.val[0];
+            midavgfin = midavg.val[0];
+            rightavgfin = rightavg.val[0];
+
+            if (leftavgfin > midavgfin && leftavgfin > rightavgfin) {
+                //telemetry.addLine("Left");
+                Imgproc.rectangle(outPut, leftRect, boundingRect, -1);
+                teamPropPos = 0;
+            } else if (midavgfin > rightavgfin && midavgfin > leftavgfin) {
+                //telemetry.addLine("Middle");
+                Imgproc.rectangle(outPut, MidRect, boundingRect, -1);
+                teamPropPos = 1;
+            } else if (rightavgfin > midavgfin && rightavgfin > leftavgfin) {
+                //telemetry.addLine("Right");
+                Imgproc.rectangle(outPut, rightRect, boundingRect, -1);
+                teamPropPos = 2;
+            }
+
+            //telemetry.addData("Leftavg", leftavg.val[0]);
+            //telemetry.addData("Midavg", midavg.val[0]);
+            //telemetry.addData("Rightavg", rightavg.val[0]);
+            return (outPut);
         }
     }
 }

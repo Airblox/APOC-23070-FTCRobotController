@@ -34,7 +34,7 @@ public class AutonBlueNS extends LinearOpMode {
     camera_stage cameraStage = camera_stage.UNKNOWN;
     @Override
     public void runOpMode() throws InterruptedException {
-        AutonBlueNBHardware robot = AutonBlueNBHardware.init(hardwareMap);
+        AutonBlueNSHardware robot = AutonBlueNSHardware.init(hardwareMap);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         final Pose2d startPose = new Pose2d(-40, 63.51, Math.toRadians(270.00));
         int offset = 5;
@@ -42,46 +42,63 @@ public class AutonBlueNS extends LinearOpMode {
         Pose2d poseEstimate;
 
         state = State.INITIALISED;
-        robot.clawGrip();
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(31,38.08))
-                .turn(Math.toRadians(90))
+                .lineToConstantHeading(new Vector2d(-35,32))
+                .turn(Math.toRadians(-70))
                 .addTemporalMarker(()->{
-                    robot.intakeReverse();
+                    robot.intake.setPower(-0.3);
+                    robot.counterroller.setPower(1);
                 })
                 .waitSeconds(1)
-                .addTemporalMarker(()->{
-                    robot.intakeOff();
-                })
+                .addTemporalMarker(robot::intakeOff)
+                .forward(5)
+                .strafeLeft(41)
+                .turn(Math.toRadians(171))
+                .forward(40)
+                .strafeRight(5)
+                .forward(50)
                 .forward(12)
+//                .turn(Math.toRadians(-90))
                 .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .forward(24)
-                .turn(Math.toRadians(-180))
-                .addTemporalMarker(()->{
-                            robot.intakeReverse();
-                        }
-                )
+                .lineToConstantHeading(new Vector2d(-45,10))
+                .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
-                .addTemporalMarker(()->{
-                            robot.intakeOff();
-                        }
-                )
-                .turn(Math.toRadians(-90))
-                .forward(24)
+                .addTemporalMarker(robot::intakeOff)
+                .forward(5)
+                .turn(Math.toRadians(85)).
+                strafeLeft(7)
+                .forward(40)
+                .turn(Math.toRadians(20))
+                .strafeRight(5)
+                .forward(40)
+                .strafeRight(20)
+                .forward(10)
+//                .turn(Math.toRadians(-97))
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(-50.46,15.91))
-                .turn(Math.toRadians(45))
-                .addTemporalMarker(()->{
-                    robot.intakeReverse();
+                .lineToConstantHeading(new Vector2d(-25,32))
+                .turn(Math.toRadians(83))
+                .addTemporalMarker(() -> {
+                    robot.intake.setPower(-0.3);
+                    robot.counterroller.setPower(1);
                 })
+                .waitSeconds(1)
+                .addTemporalMarker(robot::intakeOff)
+                .forward(5)
+                .strafeRight(40)
+                .turn(Math.toRadians(-10))
                 .forward(20)
-                .addTemporalMarker(()->{
-                            robot.intakeOff();
-                        }
-                )
-                .turn(Math.toRadians(-40))
+                .strafeLeft(2)
+                .forward(20)
+                .turn(Math.toRadians(20))
+                .forward(20)
+                .strafeLeft(2)
+                .forward(30)
+//                .forward(70)
+                .strafeRight(10)
+                .forward(20)
+//                .turn(Math.toRadians(-90))
                 .build();
         TrajectorySequence leftscore = drive.trajectorySequenceBuilder(new Pose2d(33.0,32.08,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(60, 40))
@@ -140,18 +157,21 @@ public class AutonBlueNS extends LinearOpMode {
             switch (cameraStage){
                 case LEFT:
                     drive.followTrajectorySequence(left);
-                    drive.followTrajectorySequence(leftscore);
-                    cameraStage = camera_stage.SCORING;
+                    cameraStage = camera_stage.FINISH;
+                    //drive.followTrajectorySequence(leftscore);
+                    //cameraStage = camera_stage.SCORING;
                     break;
                 case RIGHT:
                     drive.followTrajectorySequence(right);
-                    drive.followTrajectorySequence(rightscore);
-                    cameraStage = camera_stage.SCORING;
+                    cameraStage = camera_stage.FINISH;
+                    //drive.followTrajectorySequence(rightscore);
+                    //cameraStage = camera_stage.SCORING;
                     break;
                 case MIDDLE:
                     drive.followTrajectorySequence(middle);
-                    drive.followTrajectorySequence(middlescore);
-                    cameraStage = camera_stage.SCORING;
+                    cameraStage = camera_stage.FINISH;
+                    //drive.followTrajectorySequence(middlescore);
+                    //cameraStage = camera_stage.SCORING;
                     break;
                 case SCORING:
                     break;
@@ -161,8 +181,6 @@ public class AutonBlueNS extends LinearOpMode {
 
             switch (state){
                 case INITIALISED:
-                    robot.clawGrip();
-                    robot.linkageUp();
                     break;
                 case TRANSFER:
                     if (timer1.milliseconds() > 4000) {

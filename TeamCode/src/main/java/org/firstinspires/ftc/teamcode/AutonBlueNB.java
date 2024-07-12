@@ -76,31 +76,32 @@ public class AutonBlueNB extends LinearOpMode {
         robot.imu.resetYaw();
         drive.setPoseEstimate(startPose);
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(66,25))
+                .lineToConstantHeading(new Vector2d(58,25))
                 .turn(Math.toRadians(90))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
                 .forward(12)
+                .strafeLeft(48)
                 .build();
+        //                    robot.clawGrip();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(9.52,32.31))
+                .lineToConstantHeading(new Vector2d(9.52,35.41))
                 .turn(Math.toRadians(180))
                 .forward(6)
                 .addTemporalMarker(()->{
                     robot.intakeReverse();
                     telemetry.addLine("middle");
                     telemetry.update();
-                    robot.linkageUp();
+//                    robot.linkageUp();
                 })
                 .waitSeconds(0.5)
                 .forward(8)
-                .addTemporalMarker(() -> {
-                    robot.intakeOff();
-                    robot.clawGrip();
-                })
+                .addTemporalMarker(robot::intakeOff)
                 .turn(Math.toRadians(-80))
-                .forward(43)
+                .forward(35)
+                .strafeLeft(20)
+
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)
                 .lineToConstantHeading(new Vector2d(5.65,29.08))
@@ -109,14 +110,17 @@ public class AutonBlueNB extends LinearOpMode {
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
                 .forward(24)
+                .strafeLeft(48)
                 .build();
         TrajectorySequence leftscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(48, 33))
                 .addTemporalMarker(()->{
                     timer1.reset();
                     // TODO: RENEABLE IT
-                    state = State.SLIDERS;
+//                    state = State.SLIDERS;
                 })
+                .waitSeconds(5)
+                .forward(-20)
                 .build();
         TrajectorySequence middlescore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
                 .strafeRight(10)
@@ -128,6 +132,8 @@ public class AutonBlueNB extends LinearOpMode {
                     telemetry.addLine("middlescore");
                     telemetry.update();
                 })
+                .waitSeconds(5)
+                .forward(-20)
                 .build();
         TrajectorySequence rightscore = drive.trajectorySequenceBuilder(new Pose2d(36.52,12.31,Math.toRadians(0)))
                 .lineToConstantHeading(new Vector2d(52, 24))
@@ -137,6 +143,8 @@ public class AutonBlueNB extends LinearOpMode {
                     // TODO: REENABLE
                     state = State.SLIDERS;
                 })
+                .waitSeconds(5)
+                .forward(-20)
                 .build();
 
 
@@ -145,39 +153,39 @@ public class AutonBlueNB extends LinearOpMode {
             Trajectory back = drive.trajectoryBuilder(poseEstimate)
                     .back(5)
                     .build();
-            if (gamepad1.dpad_left){
-                drive.followTrajectorySequence(left);
-                drive.followTrajectorySequence(leftscore);
-            }
-
-            ;if (gamepad1.dpad_up){
-                drive.followTrajectorySequence(middle);
-                drive.followTrajectorySequence(middlescore);
-            }
-            if (gamepad1.dpad_right){
-                telemetry.addLine("yes");
-                telemetry.update();
-                drive.followTrajectorySequence(right);
-                telemetry.addLine("no");
-                telemetry.update();
-                drive.followTrajectorySequence(rightscore);
-            }
+//            if (gamepad1.dpad_left){
+//                drive.followTrajectorySequence(left);
+////                drive.followTrajectorySequence(leftscore);
+//            }
+//
+//            ;if (gamepad1.dpad_up){
+//                drive.followTrajectorySequence(middle);
+////                drive.followTrajectorySequence(middlescore);
+//            }
+//            if (gamepad1.dpad_right){
+//                telemetry.addLine("yes");
+//                telemetry.update();
+//                drive.followTrajectorySequence(right);
+//                telemetry.addLine("no");
+//                telemetry.update();
+////                drive.followTrajectorySequence(rightscore);
+//            }
             switch (cameraStage){
                 case LEFT:
                     drive.followTrajectorySequence(left);
-                    drive.followTrajectorySequence(leftscore);
+//                    drive.followTrajectorySequence(leftscore);
                     cameraStage = camera_stage.SCORING;
                     break;
                 case RIGHT:
                     drive.followTrajectorySequence(right);
-                    drive.followTrajectorySequence(rightscore);
+//                    drive.followTrajectorySequence(rightscore);
                     cameraStage = camera_stage.SCORING;
                     break;
                 case MIDDLE:
                     telemetry.addLine("start");
                     drive.followTrajectorySequence(middle);
                     telemetry.addLine("next");
-                    drive.followTrajectorySequence(middlescore);
+//                    drive.followTrajectorySequence(middlescore);
                     cameraStage = camera_stage.SCORING;
                     break;
                 case SCORING:
