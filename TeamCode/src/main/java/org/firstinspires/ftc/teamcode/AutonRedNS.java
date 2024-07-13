@@ -51,28 +51,28 @@ public class AutonRedNS extends LinearOpMode {
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .forward(5)
-                .strafeRight(45)
-                .turn(Math.toRadians(155))
-                .forward(90)
-                .turn(Math.toRadians(90))
+//                .forward(5)
+//                .strafeRight(45)
+//                .turn(Math.toRadians(155))
+//                .forward(90)
+//                .turn(Math.toRadians(90))
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
                         }
                 )
                 .build();
         TrajectorySequence left = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(10,-32.08))
-                .turn(Math.toRadians(-80))
+                .lineToConstantHeading(new Vector2d(14,-32.08))
+                .turn(Math.toRadians(-60))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .forward(5)
-                .strafeLeft(45)
-                .forward(30)
-                .turn(Math.toRadians(10))
-                .forward(60)
-                .turn(Math.toRadians(90))
+//                .forward(5)
+//                .strafeLeft(45)
+//                .forward(30)
+//                .turn(Math.toRadians(10))
+//                .forward(60)
+//                .turn(Math.toRadians(90))
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
                         }
@@ -87,17 +87,17 @@ public class AutonRedNS extends LinearOpMode {
 //                .forward(40)
 //                .build();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(10,-17))
+                .lineToConstantHeading(new Vector2d(15,-23))
                 .addTemporalMarker(robot::intakeReverse)
                 .waitSeconds(1)
                 .addTemporalMarker(robot::intakeOff)
-                .forward(5)
-                .turn(Math.toRadians(-75))
-                .forward(40)
-                .turn(Math.toRadians(5))
-                .forward(50)
-                .turn(Math.toRadians(90))
-                .forward(5)
+//                .forward(5)
+//                .turn(Math.toRadians(-75))
+//                .forward(40)
+//                .turn(Math.toRadians(5))
+//                .forward(50)
+//                .turn(Math.toRadians(90))
+//                .forward(5)
                 .addTemporalMarker(()->{
                             cameraStage=camera_stage.END;
                         }
@@ -183,8 +183,8 @@ public class AutonRedNS extends LinearOpMode {
             }
             switch (state){
                 case INITIALISED:
-                    robot.clawGrip();
-                    robot.linkageUp();
+//                    robot.clawGrip();
+//                    robot.linkageUp();
                     break;
                 case TRANSFER:
                     if (timer1.milliseconds() > 4000) state=State.RELEASE;

@@ -121,7 +121,7 @@ public class Project1Hardware {
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);  // double check here
         vertLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         vertRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rigging.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);  // double check here
+        rigging.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);  // double check here
     }
 
     /**
@@ -371,7 +371,7 @@ public class Project1Hardware {
     public void rigStop() {rigging.setPower(0); riggingMoving = false;}
 
     public void rigRelease() {riggingRelease.setPosition(0.37);}
-    public void rigReleaseReset() {riggingRelease.setPosition(0.25);}
+    public void rigReleaseReset() {riggingRelease.setPosition(0.27);}
 
     /**
      * Outputs values to the telemetry. This does not update the telemetry. Call

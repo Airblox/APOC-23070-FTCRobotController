@@ -86,7 +86,7 @@ public class AutonBlueNB extends LinearOpMode {
                 .build();
         //                    robot.clawGrip();
         TrajectorySequence middle = drive.trajectorySequenceBuilder(startPose)
-                .lineToConstantHeading(new Vector2d(9.52,35.41))
+                .lineToConstantHeading(new Vector2d(9.52,36.41))
                 .turn(Math.toRadians(180))
                 .forward(6)
                 .addTemporalMarker(()->{
@@ -100,7 +100,7 @@ public class AutonBlueNB extends LinearOpMode {
                 .addTemporalMarker(robot::intakeOff)
                 .turn(Math.toRadians(-80))
                 .forward(35)
-                .strafeLeft(20)
+                .strafeLeft(40)
 
                 .build();
         TrajectorySequence right = drive.trajectorySequenceBuilder(startPose)

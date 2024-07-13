@@ -58,7 +58,8 @@ public class Sigma extends LinearOpMode {
                     robot.intakeSetPreset(1);
                     robot.intakeOff();
                     robot.clawRelease();
-                    robot.scoring.  setTransferPosition();
+                    robot.rigReleaseReset();
+                    robot.scoring.setTransferPosition();
                     state = State.AWAIT;
                     break;
 
@@ -280,6 +281,10 @@ public class Sigma extends LinearOpMode {
             }
             if (gamepad.share && !lastGamepad.share) {
                 if (robot.riggingMoving) robot.rigStop(); else robot.rig();
+            }
+
+            if (gamepad.left_trigger > 0 && !(lastGamepad.left_trigger > 0)) {
+                if (robot.intakeOn) robot.intakeOff(); else robot.intakeReverse();
             }
 
             // Sliders
