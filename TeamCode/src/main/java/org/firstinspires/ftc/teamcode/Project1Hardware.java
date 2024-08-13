@@ -581,8 +581,8 @@ public class Project1Hardware {
         Position position;
         Orientation orientation;
         public final static double HALF = 0.22;
-        public final static double TRANSFER_BASE = 0.02;
-        public final static double SCORING_BASE = 0.56;
+        public final static double TRANSFER_BASE = 0.03;
+        public final static double SCORING_BASE = 0.57;
         public final static double OFFSET_LEFT = 0.0;
         public final static double OFFSET_RIGHT = 0.0;
         private double base, diffLeft, diffRight;
@@ -627,6 +627,18 @@ public class Project1Hardware {
          * @return Pitch of the scoring module.
          */
         public double getPitch() {return this.base;}
+
+        /** Disables power on both arm servos. */
+        public void setPwmDisable() {
+            left.setPwmDisable();
+            right.setPwmDisable();
+        }
+
+        /** Enables power on both arm servos. */
+        public void setPwmEnable() {
+            left.setPwmEnable();
+            right.setPwmEnable();
+        }
 
         /**
          * Sets the pitch of the scoring set. This does not interfere with the orientation (roll)

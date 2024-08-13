@@ -100,14 +100,19 @@ public class Sigma extends LinearOpMode {
                     if (timer1.milliseconds() > 3525) {
                         timer1.reset();
                         state = State.TRANSFER_AWAIT_SLIDER;
-                    } else if (timer1.milliseconds() > 3300) robot.intakeOff();
-                    else if (timer1.milliseconds() > 3250) robot.clawGrip();
+                    } else if (timer1.milliseconds() > 3300) {
+                        robot.intakeOff();
+                        robot.scoring.setPwmEnable();
+                    } else if (timer1.milliseconds() > 3250) robot.clawGrip();
                     else if (timer1.milliseconds() > 2100) {
                         robot.setSliderPositionCustom(0);
                         robot.linkageUp();
                     }
                     else if (timer1.milliseconds() > 1800) robot.scoring.setTransferPosition();
-                    else if (timer1.milliseconds() > 1650) robot.scoring.setPitch(0.05);
+                    else if (timer1.milliseconds() > 1650) {
+                        robot.scoring.setPitch(0.05);
+                        robot.scoring.setPwmDisable();
+                    }
                     else if (timer1.milliseconds() > 700) {
                         robot.setSliderPositionCustom(25);
                         robot.lidUp();
@@ -248,12 +253,14 @@ public class Sigma extends LinearOpMode {
                         robot.scoring.setTransferPosition();
                         timer1.reset();
                         state = State.RESET;
-                    } else if (timer1.milliseconds() > 2000) robot.scoring.setPitch(0.02);
+                    }
                     else if (timer1.milliseconds() > 1850) robot.scoring.setPitch(0.05);
                     else if (timer1.milliseconds() > 1700) robot.scoring.setPitch(0.075);
-                    else if (timer1.milliseconds() > 900) robot.scoring.setPitch(0.1);
+                    else if (timer1.milliseconds() > 1300) robot.scoring.setPitch(0.1);
+                    else if (timer1.milliseconds() > 900) robot.scoring.setPitch(0.2);
+                    else if (timer1.milliseconds() > 750) robot.scoring.setPitch(0.25);
                     else if (timer1.milliseconds() > 600) robot.scoring.setPitch(0.3);
-                    else if (timer1.milliseconds() > 300) robot.scoring.setHorizontal();
+                    else if (timer1.milliseconds() > 300) robot.scoring.setPitch(0.43);
                     break;
 
                 case RESET:
